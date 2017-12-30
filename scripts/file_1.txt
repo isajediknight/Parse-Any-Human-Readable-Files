@@ -1,0 +1,7 @@
+date|num ber|TesTC ASE|n ame|p key|0ther
+1/1/1970|5|asdf|luke|1|mon
+01/09/1980|4.1|qwerty|nate|2|tues
+'12/10/1990'|3/5|zxcv|tim|3|wed
+1/2/3|8||james|4|moar|what|happens|here|ppl
+02/03/2007|10|caSe|Rachel|5|thurs
+1/1/1970|231|asdf|lee|6|fri

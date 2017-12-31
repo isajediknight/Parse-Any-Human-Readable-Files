@@ -2,6 +2,7 @@ import os,time,datetime,sys,platform
 from os import getcwd
 from collections import namedtuple
 from platform import python_version
+from helper_methods import compatibility_print
 class histogram:
 	"""
 	Goal is to create a class which will read in:
@@ -67,13 +68,13 @@ class histogram:
 			self.path_type = 'file' if os.path.isfile(self.path) else 'unknown'
 
 		if(self.path_type == 'file'):
-			self.compatibility_print(path,"is a file")
+			compatibility_print(path,"is a file")
 			self.root_object = 'file'
 			self.is_file = True
 			self.is_dir = False
 			# try to detect file encoding here?
 		elif(self.path_type == 'directory'):
-			self.compatibility_print(path,"is a directory")
+			compatibility_print(path,"is a directory")
 			self.root_object = 'directory'
 			self.is_file = False
 			self.is_dir = True
@@ -94,7 +95,7 @@ class histogram:
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
-		self.compatibility_print("Initialized in: "+str(run_time)+" seconds.")
+		compatibility_print("Initialized in: "+str(run_time)+" seconds.")
 
 	def get_file_list(self):
 		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header')
@@ -123,15 +124,15 @@ class histogram:
 						  	      file_info.st_size,
 						  	      'Folder' if os.path.isdir(self.path + filename) else 'File',
 							      self.get_headers(filename))
-				#self.compatibility_print(self.path + filename)
+				#compatibility_print(self.path + filename)
 		else:
 			pass
 			# Raise Error
 
 	def get_headers(self,key):
 		if(self.is_dir):
-			self.compatibility_print("[ <",self.path,">",'is a Directory ]')
-			self.compatibility_print("There are no File Headers")
+			compatibility_print("[ <",self.path,">",'is a Directory ]')
+			compatibility_print("There are no File Headers")
 			return None
 		elif(self.is_file):
 			# open the file and count the lines in it
@@ -150,7 +151,7 @@ class histogram:
 			for char in unique_chars_in_header:
 				count_chars[char] = 0
 			for char in header:
-				# Exclude a-z and A-Z from being considered as delimeters
+				# Exclude a-z,A-Z and spaces from being considered as delimeters
 				if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
 					count_chars[char] = 1
 				else:
@@ -169,7 +170,23 @@ class histogram:
 			header_to_return = header_to_return.strip()
 			self.headers = header_to_return
 			self.delimeter = max_corresponding_key
-			return header_to_return.split(' ')
+			check_namedtuple_naming_conventions = header_to_return.split(' ')
+			fixed_headers = []
+			fixed_header_counter = 1
+			for header in check_namedtuple_naming_conventions:
+                                if((ord(header[0]) >= 65 and ord(header[0]) <= 90) or (ord(header[0]) >= 97 and ord(header[0]) <= 122) or (ord(header[0]) == 32)):
+                                        fixed_headers.append(header)
+                                else:
+                                        fixed_headers.append('renamed_header_'+str(fixed_header_counter)+'_'+header)
+                                        fixed_header_counter += 1
+                                        compatibility_print("[ Caught Exception ]")
+                                        compatibility_print("Error Code: 1 < Invalid Column Name In Input File >\n")
+                                        compatibility_print("Character: '"+header[0]+"' in '"+header+"' is not a valid beginning character for a header.")
+                                        compatibility_print("Please change the header column in "+self.path+" to start with a letter of the alphabet.")
+                                        compatibility_print("Column has been renamed in order for program to continue.\n")
+			#chars_that_nt_cannot_start_with = ['0','1','2','3','4','5','6','7','8','9','_']
+                        self.headers = fixed_headers
+			return fixed_headers
 
 	# Does a Primary Key Exist?
 	def get_primary_key(self,lines_to_check=9999):
@@ -208,31 +225,18 @@ class histogram:
 			pass
 			# Raise Error
 
-	# Will use the correct print command depending if you are using Python 2.x or 3.x
-	# Works with only major versions of Python.  IE: Python 2.4 print worked differently than 2.7
-	def compatibility_print(self,string,end="\n"):
-		if(self.python_version.find('2.') > -1):
-			if(end == "\n"):
-				print string
-			else:
-				print string+end
-		elif(self.python_version.find('3.') > -1):
-			print(string,end)
-		else:
-			print(self.python_version,"print is not supported")
-
 	def help(self,which=None):
-		self.compatibility_print("\n[ Help Options for Histogram Class ]",'\n\n')
+		compatibility_print("\n[ Help Options for Histogram Class ]",'\n\n')
 		if(which == None):
-			self.compatibility_print("[ No Options passed in.  Please re-run. ]")
-			self.compatibility_print(".help('vars')")
-			self.compatibility_print(".help('methods')")
+			compatibility_print("[ No Options passed in.  Please re-run. ]")
+			compatibility_print(".help('vars')")
+			compatibility_print(".help('methods')")
 		elif(which == 'vars'):
-			self.compatibility_print("[ Variables ]",'\n\n')
-			self.compatibility_print(".is_file\n\tBoolean: True/False\n\tDescription is it file or not?",'\n\n')
-			self.compatibility_print(".is_dir\n\tBoolean: True/False",'\n\n')
-			self.compatibility_print(".root_object\n\tThe type of object passed to create the class",'\n\n')
-			self.compatibility_print(".path\n\tThe path passed in when the Histogram object was created",'\n\n')
+			compatibility_print("[ Variables ]",'\n\n')
+			compatibility_print(".is_file\n\tBoolean: True/False\n\tDescription is it file or not?",'\n\n')
+			compatibility_print(".is_dir\n\tBoolean: True/False",'\n\n')
+			compatibility_print(".root_object\n\tThe type of object passed to create the class",'\n\n')
+			compatibility_print(".path\n\tThe path passed in when the Histogram object was created",'\n\n')
 		elif(which == 'methods'):
-			self.compatibility_print(" [ Methods ]",'\n\n')
-			self.compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')
+			compatibility_print(" [ Methods ]",'\n\n')
+			compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')

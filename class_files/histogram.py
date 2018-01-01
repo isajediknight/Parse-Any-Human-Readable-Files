@@ -3,6 +3,8 @@ from os import getcwd
 from collections import namedtuple
 from platform import python_version
 from helper_methods import compatibility_print
+from helper_methods import find_all_return_generator
+
 class histogram:
 	"""
 	Goal is to create a class which will read in:
@@ -29,69 +31,162 @@ class histogram:
 		    that directory and all subsequent directories.
 	"""
 
+        # Variables here are common AND shared between all instances of this class
+
+        # Dictionary of Error Codes
+        error_codes = {}
+        error_codes[1] = []
+        error_codes[1].append("[ Caught Exception ]")
+        error_codes[1].append("Error Code: 1 < Invalid Column Name In Input File >\n")
+        error_codes[1].append("Character: 'REPLACE_WITH_header[0]' in 'REPLACE_WITH_header' is not a valid beginning character for a header.")
+        error_codes[1].append("Please change the header column in REPLACE_WITH_self.path to start with a letter of the alphabet.")
+        error_codes[1].append("Column has been renamed in order for program to continue.\n")
+        error_codes[2] = []
+        error_codes[2].append("[ Caught Exception ]")
+        error_codes[2].append("Error Code: 2 < Invalid OS and Path Combination >\n")
+        error_codes[2].append("Detected OS: REPLACE_WITH_self.os_type")
+        error_codes[2].append("Detected Path Type: REPLACE_WITH_self.path_type\n")
+        error_codes[2].append("> This is a Fatal Error.  Program Exiting. <\n")
+        error_codes[3] = []
+        error_codes[3].append("[ Caught Exception ]")
+        error_codes[3].append("Error Code: 3 < Beginning Or Ending Spaces Found In Path + Filename >\n")
+        error_codes[3].append("Histogram Class Initialized With: >REPLACE_WITH_path<\n")
+        error_codes[3].append("Trimmed Path: >REPLACE_WITH_temp_path<\n")
+        # Error Code 4 is untested
+        error_codes[4] = []
+        error_codes[4].append("[ Caught Exception ]")
+        error_codes[4].append("Error Code: 4 < Double // Found in Path >\n")
+        error_codes[4].append("The Path: >REPLACE_WITH_path< has two '//' in it")
+        error_codes[4].append("Adjusted to: >REPLACE_WITH_temp_path<\n")
+
 	def __init__(self,path):
 		# Record the start time of the program
 		time_begin = datetime.datetime.now()
 
-		# Path we are dealing with
-		self.path = path
+                # List of errors caught
+                self.caught_errors = []
 
-		# Setting this to mark get_headers as not being run yet
-		self.headers = None
+                # Fix Path if needed
+                if(len(path.strip()) != len(path)):
+                        temp_path = path.strip()
+                        self.caught_errors.append(3)
+                        for error_message in self.error_codes[3]:
+                                temp = error_message
+                                temp = temp.replace('REPLACE_WITH_path',path)
+                                temp = temp.replace('REPLACE_WITH_temp_path',temp_path)
+                                compatibility_print(temp)
+                else:
+                        temp_path = path
 
-		# Need to be able to hangle multiple datatypes being sent in
-		if(type('') == type(self.path)):
-			self.path_type = 'string'
-		elif(type([]) == type(self.path)):
-			self.path_type = 'list'
-		elif(type({}) == type(self.path)):
-			self.path_type = 'dict'
-		else:
-			self.path_type = 'unknown'
-
-		# For dealing with python version compatibility
+                # For dealing with python version compatibility
 		self.python_version = python_version()
-
-		if (sys.platform.lower().startswith('linux')):
+		
+                if(sys.platform.lower().startswith('linux')):
 			self.os_type = 'linux'
+			if(len(list(find_all_return_generator(path,'//'))) > 0):
+                                self.caught_errors.append(4)
+                                temp_path = temp_path.replace('//','/').strip()
+                                for error_message in self.error_codes[4]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_path',path)
+                                        temp = temp.replace('REPLACE_WITH_temp_path',temp_path)
+                                        compatibility_print(temp)
+                        dot_locs = list(find_all_return_generator(temp_path,'..'))
+                        slash_locs = list(find_all_return_generator(temp_path,'/'))
+
+                        # If we are given a relative path make it an absolute path
+                        if(len(dot_locs) > 0):
+                                temp_path = getcwd()[:slash_locs[-len(dot_locs)]] + path[dot_locs[-1]+2:]
+
+                        if(os.path.isdir(temp_path)):
+                                self.path_type = 'directory'
+                                # We're good.  We want the just the path - and not the filename here
+                        elif(os.path.isfile(temp_path)):
+                                self.path_type = 'file'
+                                dot_locs = list(find_all_return_generator(temp_path,'..'))
+                                slash_locs = list(find_all_return_generator(temp_path,'/'))
+                                if(len(dot_locs) > 0):
+                                        pass
+                                        # Conversion from relative path to absolute path failed
+                                        # Raise Error
+                                
+                                temp_path = temp_path[:slash_locs[-1]+1]
+                        else:
+                                self.path_type = 'unknown'
+                                
+                        self.path = temp_path
 		elif(sys.platform.lower().startswith('win')):
-			self.os_type = 'win'
-		elif(sys.platform.lower().startswith('mac')):
-			self.os_type = 'mac'
+			self.os_type = 'windows'
+			
+			# Not Needed?
+			#if(len(list(find_all_return_generator(path,'\\'))) > 0):
+                        #        self.caught_errors.append(4)
+                        #        temp_path = temp_path.replace('\\','/').strip()
+                        #        for error_message in self.error_codes[4]:
+                        #                temp = error_message
+                        #                temp = temp.replace('REPLACE_WITH_path',path)
+                        #                temp = temp.replace('REPLACE_WITH_temp_path',temp_path)
+                        #                compatibility_print(temp)
+                        
+                        dot_locs = list(find_all_return_generator(temp_path,'..'))
+                        slash_locs = list(find_all_return_generator(temp_path,'\\'))
+
+                        # If we are given a relative path make it an absolute path
+                        if(len(dot_locs) > 0):
+                                temp_path = getcwd()[:slash_locs[-len(dot_locs)]+2] + '\\'
+                                parameter_path_slash_locs = list(find_all_return_generator(path,'\\'))
+                                self.filename = path[parameter_path_slash_locs[-1]+1:]
+
+                        if(os.path.isdir(temp_path + self.filename)):
+                                self.path_type = 'directory'
+                                self.filename = None
+                                # We're good.  We want the just the path - and not the filename here
+                        elif(os.path.isfile(temp_path + self.filename)):
+                                self.path_type = 'file'
+                                dot_locs = list(find_all_return_generator(temp_path,'..'))
+                                slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                                if(len(dot_locs) > 0):
+                                        pass
+                                        # Conversion from relative path to absolute path failed
+                                        # Raise Error
+                                print("Path:",temp_path)
+                                temp_path = temp_path[:slash_locs[-1]+1]
+                                self.filename = temp_path[slash_locs[-1]:]
+                                print("Filename:",self.filename)
+                                temp_path = temp_path.replace(self.filename,'')
+                        else:
+                                self.path_type = 'unknown'
+                                
+                        self.path = temp_path
+		elif(sys.platform.lower().startswith('macintosh')):
+			self.os_type = 'macintosh'
+			
 		else:
 			self.os_type = 'unknown'
 			# Raise Error
 
-		# Are we dealing with one file, multiple files, or a directory?
-		self.path_type = 'directory' if os.path.isdir(self.path) else 'unknown'
-		if(self.path_type == 'unknown'):
-			self.path_type = 'file' if os.path.isfile(self.path) else 'unknown'
+		if(3 in self.caught_errors):
+                        compatibility_print("Corrected Path Without Spaces: >"+"<\n")
 
-		if(self.path_type == 'file'):
-			compatibility_print(path,"is a file")
-			self.root_object = 'file'
-			self.is_file = True
-			self.is_dir = False
-			# try to detect file encoding here?
-		elif(self.path_type == 'directory'):
-			compatibility_print(path,"is a directory")
-			self.root_object = 'directory'
-			self.is_file = False
-			self.is_dir = True
-			# Loop through directory structure and get names of all files in all subfolders
-		else:
-			#print(path,"is not valid")
-			# Raise Error
-			# Need to come back and fix this better
-			raise Exception("File Not Found: " , path)
+                if(self.os_type == 'linux' or self.os_type == 'macintosh'):
+                        pass
+                elif(self.os_type == 'windows'):
+                        pass
+
+                # I think I don't want to tackle this
+                # Preferreded route would be to call this class for each new directory instead of passing a list of directories
+                ## Need to be able to hangle multiple datatypes being sent in
+		##if(type('') == type(self.path)):
+                ##        self.path_type = 'string'
+		##elif(type([]) == type(self.path)):
+		##	self.path_type = 'list'
+		##elif(type({}) == type(self.path)):
+		##	self.path_type = 'dict'
+		##else:
+		##	self.path_type = 'unknown'
 
 		self.file_list = {}
-
 		self.get_file_list()
-
-		#print len(list(self.file_list.keys()))
-
-		
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
@@ -99,11 +194,11 @@ class histogram:
 
 	def get_file_list(self):
 		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header')
-		if(self.is_file):
+		if(self.path_type == 'file'):
 			# Need come back and make sure that at this point we are dealing with all absolute paths
 			# getcwd() will only work will only work when the file is being opened from the directory
 			# the program is being run from
-			file_info = os.stat(os.path.join(getcwd(),self.path))
+			file_info = os.stat(os.path.join(self.path,self.filename))
 			self.file_list[self.path] = nt(self.path,
                                                        datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
                                                        datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
@@ -112,7 +207,7 @@ class histogram:
                                                        file_info.st_size,
                                                        'Folder' if os.path.isdir(self.path) else 'File',
 						       self.get_headers(self.path))
-		elif(self.is_dir):
+		elif(self.path_type == 'directory'):
 			for filename in os.listdir(self.path):
 				file_info = os.stat(os.path.join(self.path,filename))
 				# need to add logic to check if windows or linux to fix slashes
@@ -130,11 +225,11 @@ class histogram:
 			# Raise Error
 
 	def get_headers(self,key):
-		if(self.is_dir):
-			compatibility_print("[ <",self.path,">",'is a Directory ]')
+		if(self.path_type == 'directory'):
+			compatibility_print("[ <"+self.path+"> is a Directory ]")
 			compatibility_print("There are no File Headers")
 			return None
-		elif(self.is_file):
+		elif(self.path_type == 'file'):
 			# open the file and count the lines in it
 			#readfile = open(self.path + self.file_list[key],'r')
 			readfile = open(key,'r')
@@ -179,11 +274,13 @@ class histogram:
                                 else:
                                         fixed_headers.append('renamed_header_'+str(fixed_header_counter)+'_'+header)
                                         fixed_header_counter += 1
-                                        compatibility_print("[ Caught Exception ]")
-                                        compatibility_print("Error Code: 1 < Invalid Column Name In Input File >\n")
-                                        compatibility_print("Character: '"+header[0]+"' in '"+header+"' is not a valid beginning character for a header.")
-                                        compatibility_print("Please change the header column in "+self.path+" to start with a letter of the alphabet.")
-                                        compatibility_print("Column has been renamed in order for program to continue.\n")
+                                        self.caught_errors.append(1)
+                                        for error_message in self.error_codes[1]:
+                                                temp = error_message
+                                                temp = temp.replace('REPLACE_WITH_header[0]',header[0])
+                                                temp = temp.replace('REPLACE_WITH_header',header)
+                                                temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                                compatibility_print(temp)
 			#chars_that_nt_cannot_start_with = ['0','1','2','3','4','5','6','7','8','9','_']
                         self.headers = fixed_headers
 			return fixed_headers
@@ -240,3 +337,48 @@ class histogram:
 		elif(which == 'methods'):
 			compatibility_print(" [ Methods ]",'\n\n')
 			compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')
+	def save_for_later():
+                # Are we dealing with one file, multiple files, or a directory?
+		self.path_type = 'directory' if os.path.isdir(path) else 'unknown'
+		if(self.path_type == 'unknown'):
+			self.path_type = 'file' if os.path.isfile(path) else 'unknown'
+
+		if(self.path_type == 'file'):
+			self.root_object = 'file'
+			self.is_file = True
+			self.is_dir = False
+			# try to detect file encoding here?
+		elif(self.path_type == 'directory'):
+			self.root_object = 'directory'
+			self.is_file = False
+			self.is_dir = True
+			# Loop through directory structure and get names of all files in all subfolders
+		else:
+                        self.root_object = 'unknown'
+			self.is_file = False
+			self.is_dir = False
+			#print(path,"is not valid")
+			# Raise Error
+			# Need to come back and fix this better
+			raise Exception("File Not Found: " , path)
+
+		# Path we are dealing with
+		if((self.os_type == 'linux' and self.path_type == 'file') or (self.os_type == 'macintosh' and self.path_type == 'file')):
+                        folder_locs = find_all_return_generator(path,'')
+                elif((self.os_type == 'linux' and self.path_type == 'directory') or (self.os_type == 'macintosh' and self.path_type == 'directory')):
+                        pass
+                elif(self.os_type == 'windows' and self.path_type == 'file'):
+                        pass
+                elif(self.os_type == 'windows' and self.path_type == 'directory'):
+                        pass
+                else:
+                        self.caught_errors.append(2)
+                        for error_message in self.error_codes[2]:
+                                temp = error_message
+                                temp = temp.replace('REPLACE_WITH_self.os_type',self.os_type)
+                                temp = temp.replace('REPLACE_WITH_self.path_type','unknown')#self.path_type)
+                                compatibility_print(temp)
+                        return None
+
+		# Setting this to mark get_headers as not being run yet
+		self.headers = None

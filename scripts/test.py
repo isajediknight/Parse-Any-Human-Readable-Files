@@ -17,6 +17,8 @@ elif((my_platform == 'win')):
     sys.path.insert(0,'..\\class_files\\')
 from histogram import *
 
+from os import getcwd
+
 if(my_platform == 'linux'):
     #a = histogram('/home/luke/')
     #b = histogram('.Xauthority')
@@ -31,18 +33,18 @@ if(my_platform == 'linux'):
     print h.file_list
     
 elif(my_platform == 'win'):
-    #a = histogram('/home/luke/')
+    a = histogram('..\\input_files\\file_1.txt')
     #b = histogram('.Xauthority')
     #c = histogram('/home/luke')
     #d = histogram('//home//luke')
     #e = histogram('//home//luke//')
     #f = histogram('/home/luke/.XauthoRITY')
     #g = histogram('/home/luke/.Xauthority')
-    h = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
+    #h = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
     #c.get_file_list()
     #print(len(c.file_list))
-    h.get_primary_key()
-    print h.file_list
+    #h.get_primary_key()
+    #print h.file_list
 
 else:
     print("Unknown OS")

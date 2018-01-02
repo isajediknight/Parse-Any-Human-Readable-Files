@@ -133,8 +133,16 @@ class histogram:
 
                         # If we are given a relative path make it an absolute path
                         if(len(dot_locs) > 0):
-                                temp_path = getcwd()[:slash_locs[-len(dot_locs)]+2] + '\\'
                                 parameter_path_slash_locs = list(find_all_return_generator(path,'\\'))
+                                temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'\\'))
+                                temp_path_slash_locs_closest_to_dots = -1
+                                print(dot_locs)
+                                print(str(max(dot_locs)))
+                                for locs in slash_locs:
+                                        if((max(dot_locs) < locs) and (temp_path_slash_locs_closest_to_dots < locs)):
+                                                temp_path_slash_locs_closest_to_dots = locs
+                                temp_path = getcwd()[:getcwd_slash_locs[-len(dot_locs)]] + temp_path[temp_path_slash_locs[-(slash_locs.index(temp_path_slash_locs_closest_to_dots))]:]
                                 self.filename = path[parameter_path_slash_locs[-1]+1:]
 
                         if(os.path.isdir(temp_path + self.filename)):

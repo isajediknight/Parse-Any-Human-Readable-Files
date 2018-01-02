@@ -34,8 +34,8 @@ if(my_platform == 'linux'):
     
 elif(my_platform == 'win'):
     a = histogram('..\\input_files\\file_1.txt')
-    #b = histogram('.Xauthority')
-    #c = histogram('/home/luke')
+    b = histogram('..\\..\\input_files\\file_1.txt')
+    c = histogram('..\\..\\..\\input_files\\good_times\\file_1.txt')
     #d = histogram('//home//luke')
     #e = histogram('//home//luke//')
     #f = histogram('/home/luke/.XauthoRITY')
@@ -45,6 +45,9 @@ elif(my_platform == 'win'):
     #print(len(c.file_list))
     #h.get_primary_key()
     #print h.file_list
+    print(a.path)
+    print(b.path)
+    print(c.path)
 
 else:
     print("Unknown OS")

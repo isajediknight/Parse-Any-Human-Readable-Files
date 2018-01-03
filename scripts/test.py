@@ -36,7 +36,7 @@ elif(my_platform == 'win'):
     a = histogram('..\\input_files\\file_1.txt')
     b = histogram('..\\..\\input_files\\file_1.txt')
     c = histogram('..\\..\\..\\input_files\\good_times\\file_1.txt')
-    #d = histogram('//home//luke')
+    d = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
     #e = histogram('//home//luke//')
     #f = histogram('/home/luke/.XauthoRITY')
     #g = histogram('/home/luke/.Xauthority')
@@ -45,9 +45,9 @@ elif(my_platform == 'win'):
     #print(len(c.file_list))
     #h.get_primary_key()
     #print h.file_list
-    print(a.path)
-    print(b.path)
-    print(c.path)
+    #print(a.path)
+    #print(b.path)
+    #print(c.path)
 
 else:
     print("Unknown OS")

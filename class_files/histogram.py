@@ -21,6 +21,7 @@ class histogram:
 		1)  The first line of the file contains headers.  This will be validated if the first line does not
 		    contain any numbers in it.  Further validated if other lines in the file do contain numbers in
 		    them.
+		2)  Filename does not contain '..' except to indicate a relative path
 
 	Considerations
 		1)  
@@ -58,6 +59,11 @@ class histogram:
         error_codes[4].append("Error Code: 4 < Double // Found in Path >\n")
         error_codes[4].append("The Path: >REPLACE_WITH_path< has two '//' in it")
         error_codes[4].append("Adjusted to: >REPLACE_WITH_temp_path<\n")
+        # Error Code 5 is untested
+        error_codes[5] = []
+        error_codes[5].append("[ Caught Exception ]")
+        error_codes[5].append("Error Code: 5 < '..' Was Found In The Filename >\n")
+        error_codes[5].append("Please rename <REPLACE_WITH_temp_path> to not include two successives dots")
 
 	def __init__(self,path):
 		# Record the start time of the program
@@ -77,6 +83,8 @@ class histogram:
                                 compatibility_print(temp)
                 else:
                         temp_path = path
+
+                temp_path_dot_locs = list(find_all_return_generator(temp_path,'..'))
 
                 # For dealing with python version compatibility
 		self.python_version = python_version()
@@ -118,6 +126,9 @@ class histogram:
 		elif(sys.platform.lower().startswith('win')):
 			self.os_type = 'windows'
 			
+			temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                        self.filename = temp_path[temp_path_slash_locs[-1]+1:]
+			
 			# Not Needed?
 			#if(len(list(find_all_return_generator(path,'\\'))) > 0):
                         #        self.caught_errors.append(4)
@@ -127,45 +138,39 @@ class histogram:
                         #                temp = temp.replace('REPLACE_WITH_path',path)
                         #                temp = temp.replace('REPLACE_WITH_temp_path',temp_path)
                         #                compatibility_print(temp)
-                        
-                        dot_locs = list(find_all_return_generator(temp_path,'..'))
-                        slash_locs = list(find_all_return_generator(temp_path,'\\'))
 
                         # If we are given a relative path make it an absolute path
-                        if(len(dot_locs) > 0):
-                                parameter_path_slash_locs = list(find_all_return_generator(path,'\\'))
-                                temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                        if(len(temp_path_dot_locs) > 0):
                                 getcwd_slash_locs = list(find_all_return_generator(getcwd(),'\\'))
-                                temp_path_slash_locs_closest_to_dots = -1
-                                print(dot_locs)
-                                print(str(max(dot_locs)))
-                                for locs in slash_locs:
-                                        if((max(dot_locs) < locs) and (temp_path_slash_locs_closest_to_dots < locs)):
-                                                temp_path_slash_locs_closest_to_dots = locs
-                                temp_path = getcwd()[:getcwd_slash_locs[-len(dot_locs)]] + temp_path[temp_path_slash_locs[-(slash_locs.index(temp_path_slash_locs_closest_to_dots))]:]
-                                self.filename = path[parameter_path_slash_locs[-1]+1:]
+                                self.path = getcwd()[:getcwd_slash_locs[-len(temp_path_dot_locs)]] + temp_path[temp_path_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '\\'
+                                #parameter_path_slash_locs = list(find_all_return_generator(path,'\\'))
+                                #temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                                #getcwd_slash_locs = list(find_all_return_generator(getcwd(),'\\'))
+                                #temp_path_slash_locs_closest_to_dots = -1
+                                #print(dot_locs)
+                                #print(str(max(dot_locs)))
+                                #for locs in slash_locs:
+                                #        if((max(dot_locs) < locs) and (temp_path_slash_locs_closest_to_dots < locs)):
+                                #                temp_path_slash_locs_closest_to_dots = locs
+                                #temp_path = getcwd()[:getcwd_slash_locs[-len(dot_locs)]] + temp_path[temp_path_slash_locs[-(slash_locs.index(temp_path_slash_locs_closest_to_dots))]:]
+                                #self.filename = path[parameter_path_slash_locs[-1]+1:]
+                        else:
+                                self.path = temp_path
 
-                        if(os.path.isdir(temp_path + self.filename)):
+                        # I am lazy - really lazy ...
+                        self.path = self.path.replace(self.filename, '')
+
+                        if(os.path.isdir(self.path + self.filename)):
                                 self.path_type = 'directory'
                                 self.filename = None
                                 # We're good.  We want the just the path - and not the filename here
-                        elif(os.path.isfile(temp_path + self.filename)):
+                        elif(os.path.isfile(self.path + self.filename)):
                                 self.path_type = 'file'
-                                dot_locs = list(find_all_return_generator(temp_path,'..'))
-                                slash_locs = list(find_all_return_generator(temp_path,'\\'))
-                                if(len(dot_locs) > 0):
-                                        pass
-                                        # Conversion from relative path to absolute path failed
-                                        # Raise Error
-                                print("Path:",temp_path)
-                                temp_path = temp_path[:slash_locs[-1]+1]
-                                self.filename = temp_path[slash_locs[-1]:]
-                                print("Filename:",self.filename)
-                                temp_path = temp_path.replace(self.filename,'')
+                                path_slash_locs = list(find_all_return_generator(self.path,'\\'))
+                                self.path = self.path[:path_slash_locs[-1]] + '\\'
                         else:
                                 self.path_type = 'unknown'
                                 
-                        self.path = temp_path
 		elif(sys.platform.lower().startswith('macintosh')):
 			self.os_type = 'macintosh'
 			
@@ -214,7 +219,7 @@ class histogram:
                                                        self.path,
                                                        file_info.st_size,
                                                        'Folder' if os.path.isdir(self.path) else 'File',
-						       self.get_headers(self.path))
+						       self.get_headers(self.path + self.filename))
 		elif(self.path_type == 'directory'):
 			for filename in os.listdir(self.path):
 				file_info = os.stat(os.path.join(self.path,filename))

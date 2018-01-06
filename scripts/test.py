@@ -8,6 +8,8 @@ if (sys.platform.lower().startswith('linux')):
     my_platform = 'linux'
 elif (sys.platform.lower().startswith('win')):
     my_platform = 'win'
+elif (sys.platform.lower().startswith('mac')):
+    my_platform = 'mac'
 else:
     my_platform = 'unknown'
 
@@ -33,21 +35,14 @@ if(my_platform == 'linux'):
     print h.file_list
     
 elif(my_platform == 'win'):
-    a = histogram('..\\input_files\\file_1.txt')
-    b = histogram('..\\..\\input_files\\file_1.txt')
-    c = histogram('..\\..\\..\\input_files\\good_times\\file_1.txt')
-    d = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
-    #e = histogram('//home//luke//')
-    #f = histogram('/home/luke/.XauthoRITY')
-    #g = histogram('/home/luke/.Xauthority')
-    #h = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
-    #c.get_file_list()
-    #print(len(c.file_list))
-    #h.get_primary_key()
-    #print h.file_list
-    #print(a.path)
-    #print(b.path)
-    #print(c.path)
+    #a = histogram('..\\input_files\\file_1.txt')
+    #b = histogram('..\\..\\input_files\\file_1.txt')
+    #c = histogram('..\\..\\..\\input_files\\good_times\\file_1.txt')
+    #d = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
+    #e = histogram('..\\input_files\\file_2.txt')
+    f = histogram('..\\input_files\\file_3.txt')
 
+    #a = f.attempt_to_read_file(f.path + f.filename,'_',' '.join(f.get_headers(f.path + f.filename)))
+    #b = f.attempt_to_read_file(f.path + f.filename,',',' '.join(f.get_headers(f.path + f.filename,',')))
 else:
     print("Unknown OS")

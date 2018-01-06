@@ -69,6 +69,16 @@ class histogram:
         error_codes[6].append("[ Caught Exception ]")
         error_codes[6].append("Error Code: 6 < Operating System Not Supported >\n")
         error_codes[6].append("Supported Operating Systems are:\n * Windows\n * Linux\n * Macintosh\n")
+        error_codes[7] = []
+        error_codes[7].append("[ Caught Exception ]")
+        error_codes[7].append("Error Code: 7 < Path + Filename Does Not Exist >")
+        error_codes[7].append("REPLACE_WITH_self.pathREPLACE_WITH_self.filename\n")
+        error_codes[8] = []
+        error_codes[8].append("[ Caught Exception ]")
+        error_codes[8].append("Error Code: 8 < Attempting to get Headers of a file from a Directory >")
+        error_codes[8].append("Method: get_headers\n")
+        error_codes[8].append("Was called with <absolute_path_to_file>: REPLACE_WITH_absolute_path_to_file\n")
+        error_codes[8].append("REPLACE_WITH_absolute_path_to_file is invalid.  Rerun method by passing in a valid Path + Filename.\n")
 
 	def __init__(self,path):
 		# Benchmark all the things!
@@ -118,7 +128,13 @@ class histogram:
                                 path_slash_locs = list(find_all_return_generator(self.path,'/'))
                                 self.path = self.path[:path_slash_locs[-1]] + '/'
                         else:
-                                self.path_type = 'unknown'
+                                self.path_type = 'invalid'
+                                self.caught_errors.append(7)
+                                for error_message in self.error_codes[7]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                        temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
+                                        compatibility_print(temp)
                                 
 		elif(sys.platform.lower().startswith('win')):
 			self.os_type = 'windows'
@@ -145,7 +161,13 @@ class histogram:
                                 path_slash_locs = list(find_all_return_generator(self.path,'\\'))
                                 self.path = self.path[:path_slash_locs[-1]] + '\\'
                         else:
-                                self.path_type = 'unknown'
+                                self.path_type = 'invalid'
+                                self.caught_errors.append(7)
+                                for error_message in self.error_codes[7]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                        temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
+                                        compatibility_print(temp)
                                 
 		elif(sys.platform.lower().startswith('mac')):
 			self.os_type = 'macintosh'
@@ -172,10 +194,15 @@ class histogram:
                                 path_slash_locs = list(find_all_return_generator(self.path,'/'))
                                 self.path = self.path[:path_slash_locs[-1]] + '/'
                         else:
-                                self.path_type = 'unknown'
-                                # Create Error Code 7
+                                self.path_type = 'invalid'
+                                self.caught_errors.append(7)
+                                for error_message in self.error_codes[7]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                        temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
+                                        compatibility_print(temp)
 		else:
-			self.os_type = 'unknown'
+			self.os_type = 'invalid'
 			self.caught_errors.append(6)
                         for error_message in self.error_codes[6]:
                                 compatibility_print(error_message)
@@ -202,7 +229,7 @@ class histogram:
 
                 # Master variable which will contain all the metadata about the directory or filename passed in
 		self.file_list = {}
-		self.get_file_list()
+		#self.get_file_list()
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
@@ -212,7 +239,7 @@ class histogram:
                 # Benchmark all the things!
 		time_begin = datetime.datetime.now()
 		
-		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header')
+		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype file_data')
 		if(self.path_type == 'file'):
 			# Need come back and make sure that at this point we are dealing with all absolute paths
 			# getcwd() will only work will only work when the file is being opened from the directory
@@ -225,7 +252,9 @@ class histogram:
                                                        self.path,
                                                        file_info.st_size,
                                                        'Folder' if os.path.isdir(self.path) else 'File',
-						       self.get_headers(self.path + self.filename))
+						       self.get_headers(self.path + self.filename),
+                                                       None,
+                                                       None)
 		elif(self.path_type == 'directory'):
 			for filename in os.listdir(self.path):
 				file_info = os.stat(os.path.join(self.path,filename))
@@ -237,25 +266,44 @@ class histogram:
 						  	      self.path,
 						  	      file_info.st_size,
 						  	      'Folder' if os.path.isdir(self.path + filename) else 'File',
-							      self.get_headers(filename))
-				#compatibility_print(self.path + filename)
+							      self.get_headers(filename),
+                                                              None,
+                                                              None)
 		else:
-			pass
-			# Raise Error
+			self.caught_errors.append(7)
+                        for error_message in self.error_codes[7]:
+                                temp = error_message
+                                temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
+                                compatibility_print(temp)
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
-		compatibility_print("Initialized in: "+str(run_time)+" seconds.")
+		compatibility_print("Path parsed in: "+str(run_time)+" seconds.")
 
-	def get_headers(self,key):
-		if(self.path_type == 'directory'):
-			compatibility_print("[ <"+self.path+"> is a Directory ]")
-			compatibility_print("There are no File Headers")
+	def get_headers(self,absolute_path_to_file,hard_coded_delimeter=None,attempted_headers_and_success_rate=[],headers_yet_to_try=[]):
+                """
+                attempted_headers_and_success_rate = []
+                        [0] = ('_',0.7)
+                        [1] = (',',0.98)
+                        [2] = ('|',0.05)
+
+                hard_coded_delimeter
+                        Assign the delimeter to this if you know it or think the wrong delimeter will be chosen
+
+                        This can also be used if your delimeter is an A-Z or a-z or ' ' as normally these are excluded from being headers
+                """
+		if(os.path.isdir(absolute_path_to_file)):
+                        self.caught_errors.append(8)
+                        for error_message in self.error_codes[8]:
+                                temp = error_message
+                                temp = temp.replace('REPLACE_WITH_absolute_path_to_file',absolute_path_to_file)
+                                compatibility_print(temp)
 			return None
-		elif(self.path_type == 'file'):
+		elif(os.path.isfile(absolute_path_to_file)):
 			# open the file and count the lines in it
 			#readfile = open(self.path + self.file_list[key],'r')
-			readfile = open(key,'r')
+			readfile = open(absolute_path_to_file,'r')
 			for line in readfile:
 				header = line.strip()
 				break
@@ -264,23 +312,31 @@ class histogram:
 			# I forget why, but it's a good idea to delete file I/O when you are done with them
 			del readfile
 
-			unique_chars_in_header = list(set(header))
-			count_chars = {}
-			for char in unique_chars_in_header:
-				count_chars[char] = 0
-			for char in header:
-				# Exclude a-z,A-Z and spaces from being considered as delimeters
-				if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
-					count_chars[char] = 1
-				else:
-					count_chars[char] = count_chars[char] + 1
+                        if(hard_coded_delimeter == None):
+                                unique_chars_in_header = list(set(header))
+                                count_chars = {}
+                                for char in unique_chars_in_header:
+                                        count_chars[char] = 0
+                                for char in header:
+                                        # Exclude a-z,A-Z and spaces from being considered as delimeters
+                                        if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
+                                                count_chars[char] = 0
+                                        else:
+                                                count_chars[char] = count_chars[char] + 1
 
-			max_count = 0
-			max_corresponding_key = unique_chars_in_header[0]
-			for key in count_chars.keys():
-				if(max_count < count_chars[key]):
-					max_count = count_chars[key]
-					max_corresponding_key = key
+                                # Identify whihc delimeter occurs the most in the header
+                                max_count = 0
+                                max_corresponding_key = unique_chars_in_header[0]
+                                for key in count_chars.keys():
+                                        if(max_count < count_chars[key]):
+                                                max_count = count_chars[key]
+                                                max_corresponding_key = key
+
+                                if((ord(max_corresponding_key) >= 65 and ord(max_corresponding_key) <= 90) or (ord(max_corresponding_key) >= 97 and ord(max_corresponding_key) <= 122) or (ord(max_corresponding_key) == 32)):
+                                        # The files has only one column and the first line is the header
+                                        max_corresponding_key = '21jk3jk,m,mf^ff_this_plain_simply_does_exist_zzxcoisdfmgksmn342k53mkfmdsk'
+                        else:
+                                max_corresponding_key = hard_coded_delimeter
 
 			header_to_return = ''
 			for each_column in header.split(max_corresponding_key):
@@ -307,6 +363,47 @@ class histogram:
 			#chars_that_nt_cannot_start_with = ['0','1','2','3','4','5','6','7','8','9','_']
                         self.headers = fixed_headers
 			return fixed_headers
+		else:
+                        self.caught_errors.append(7)
+                        for error_message in self.error_codes[7]:
+                                temp = error_message
+                                temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
+                                compatibility_print(temp)
+
+        def attempt_to_read_file(self,absolute_path_to_file,delimeter,headers):
+                """
+                Pass in the absolute path to the file and the delimeter and this will read the file and return:
+                        lines read correctly
+                        lines excluded
+                        success percentage
+                """
+                nt = namedtuple('file_data',headers)
+		ans = []
+		readfile = open(absolute_path_to_file,'r')
+		counter = -1
+		successful_insert = 0
+		failure_insert = 0
+		compatibility_print(headers)
+		for line in readfile:
+                        # Skip Header Line
+                        if(counter == -1):
+                                pass
+                        else:
+                                try:
+                                        ans.append(nt(*line.split(delimeter)))
+                                        successful_insert += 1
+                                except:
+                                        failure_insert += 1
+                        counter += 1
+                try:
+                        temp = (float(successful_insert))/float(counter)*100
+                except ZeroDivisionError:
+                        temp = float(0)
+                print("{0:.2f}".format(temp)+"%")
+                return ans
+                #compatibility_print("Succeeded:",str(successful_insert))
+                #compatibility_print("Failed   :",str(failure_insert))
 
 	# Does a Primary Key Exist?
 	def get_primary_key(self,lines_to_check=9999):

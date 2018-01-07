@@ -39,7 +39,7 @@ class histogram:
         error_codes[1] = []
         error_codes[1].append("[ Caught Exception ]")
         error_codes[1].append("Error Code: 1 < Invalid Column Name In Input File >\n")
-        error_codes[1].append("Character: 'REPLACE_WITH_header[0]' in 'REPLACE_WITH_header' is not a valid beginning character for a header.")
+        error_codes[1].append("Character: 'REPLACE_WITH_replace_char' in 'REPLACE_WITH_header' is not a valid character for a header.")
         error_codes[1].append("Please change the header column in REPLACE_WITH_self.path to start with a letter of the alphabet.")
         error_codes[1].append("Column has been renamed in order for program to continue.\n")
         error_codes[2] = []
@@ -79,6 +79,11 @@ class histogram:
         error_codes[8].append("Method: get_headers\n")
         error_codes[8].append("Was called with <absolute_path_to_file>: REPLACE_WITH_absolute_path_to_file\n")
         error_codes[8].append("REPLACE_WITH_absolute_path_to_file is invalid.  Rerun method by passing in a valid Path + Filename.\n")
+        error_codes[9] = []
+        error_codes[9].append("[ Caught Exception ]")
+        error_codes[9].append("Error Code: 9 < Headers In File Contain Non-AlphaNumeric Characters >")
+        error_codes[9].append("File <REPLACE_WITH_absolute_path_to_file>\n")
+        error_codes[9].append("Contains the following Non-AlphaNumeric characters in it's Headers:")
 
 	def __init__(self,path):
 		# Benchmark all the things!
@@ -283,6 +288,9 @@ class histogram:
 
 	def get_headers(self,absolute_path_to_file,hard_coded_delimeter=None,attempted_headers_and_success_rate=[],headers_yet_to_try=[]):
                 """
+                Assumptions
+                        1)   Only alphanumeric characters will be used as headers.  Namedtuples cannot use strange characters as headers.
+
                 attempted_headers_and_success_rate = []
                         [0] = ('_',0.7)
                         [1] = (',',0.98)
@@ -299,7 +307,7 @@ class histogram:
                                 temp = error_message
                                 temp = temp.replace('REPLACE_WITH_absolute_path_to_file',absolute_path_to_file)
                                 compatibility_print(temp)
-			return None
+			fixed_headers =  None
 		elif(os.path.isfile(absolute_path_to_file)):
 			# open the file and count the lines in it
 			#readfile = open(self.path + self.file_list[key],'r')
@@ -340,36 +348,63 @@ class histogram:
 
 			header_to_return = ''
 			for each_column in header.split(max_corresponding_key):
-				header_to_return += each_column.strip().replace(' ','_') + ' '
+                                temp = each_column.strip().replace(' ','_') + ' '
+                                # Namedtuple cannot begin with an underscore
+                                while(temp[0] == '_'):
+                                        temp = temp[1:]
+				header_to_return += temp
 			header_to_return = header_to_return.strip()
 			self.headers = header_to_return
 			self.delimeter = max_corresponding_key
 			check_namedtuple_naming_conventions = header_to_return.split(' ')
 			fixed_headers = []
-			fixed_header_counter = 1
+			fixed_header_counter = 0
+			found_error = False
 			for header in check_namedtuple_naming_conventions:
-                                if((ord(header[0]) >= 65 and ord(header[0]) <= 90) or (ord(header[0]) >= 97 and ord(header[0]) <= 122) or (ord(header[0]) == 32)):
+                                if(header.isalpha()):
                                         fixed_headers.append(header)
                                 else:
-                                        fixed_headers.append('renamed_header_'+str(fixed_header_counter)+'_'+header)
+                                        found_error = True
+                                        invalid_chars = []
+                                        found_invalid_header = False
+                                        for char in header:
+                                                if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
+                                                        pass
+                                                        # We're good
+                                                else:
+                                                        found_invalid_header = True
+                                                        invalid_chars.append(char)
                                         fixed_header_counter += 1
-                                        self.caught_errors.append(1)
-                                        for error_message in self.error_codes[1]:
-                                                temp = error_message
-                                                temp = temp.replace('REPLACE_WITH_header[0]',header[0])
-                                                temp = temp.replace('REPLACE_WITH_header',header)
-                                                temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                                compatibility_print(temp)
+                                        temp_fix_header = header
+                                        for replace_char in invalid_chars:
+                                                temp_fix_header = temp_fix_header.replace(replace_char,'')
+                                        fixed_headers.append('renamed_header_'+str(fixed_header_counter)+'_'+temp_fix_header)
+                                        fixed_header_counter += 1
+                                        
+                        if(found_error):
+                                self.caught_errors.append(1)
+                                for error_message in self.error_codes[1]:
+                                        temp = error_message
+                                        if('REPLACE_WITH_replace_char' in temp):
+                                                for replace_char in invalid_chars:
+                                                        temp += error_message.replace('REPLACE_WITH_replace_char',replace_char) + '\n'
+                                        temp = temp.replace('REPLACE_WITH_header',header)
+                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
+                                        compatibility_print(temp)
 			#chars_that_nt_cannot_start_with = ['0','1','2','3','4','5','6','7','8','9','_']
                         self.headers = fixed_headers
-			return fixed_headers
 		else:
+                        fixed_headers = None
                         self.caught_errors.append(7)
                         for error_message in self.error_codes[7]:
                                 temp = error_message
                                 temp = temp.replace('REPLACE_WITH_self.path',self.path)
                                 temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
                                 compatibility_print(temp)
+
+                # Check to make sure headers contain only alpha numeric characters
+                
+                return fixed_headers
 
         def attempt_to_read_file(self,absolute_path_to_file,delimeter,headers):
                 """

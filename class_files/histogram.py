@@ -275,7 +275,7 @@ class histogram:
                                                        datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
                                                        self.path,
                                                        file_info.st_size,
-                                                       'Folder' if os.path.isdir(self.path) else 'File',
+                                                       'Directory' if os.path.isdir(self.path) else 'File',
 						       self.get_headers(self.path + self.filename),
                                                        file_type,
                                                        None)
@@ -289,7 +289,7 @@ class histogram:
 						  	      datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
 						  	      self.path,
 						  	      file_info.st_size,
-						  	      'Folder' if os.path.isdir(self.path + filename) else 'File',
+						  	      'Directory' if os.path.isdir(self.path + filename) else 'File',
 							      self.get_headers(filename),
                                                               None,
                                                               None)
@@ -347,7 +347,7 @@ class histogram:
                                 for char in header:
                                         # Exclude a-z,A-Z and spaces from being considered as delimeters
                                         if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
-                                                count_chars[char] = 0
+                                                pass
                                         else:
                                                 count_chars[char] = count_chars[char] + 1
 
@@ -366,6 +366,11 @@ class histogram:
                                 most_successful_delimeter = ''
                                 most_successful_percentage = 0
 
+                                # Remove the alphanumeric characters from consideration of being a delimeter
+                                for key in count_chars:
+                                        if(count_chars[key] == 0):
+                                                del count_chars[key]
+
                                 # Alternative approach where we calculate the success of finding the header
                                 for key in count_chars:
 
@@ -377,6 +382,8 @@ class histogram:
                                                         temp_header = temp_header[1:]
                                                 header_to_return += temp_header
                                         header_to_return = header_to_return.strip()
+
+                                        # i dont want to live on this planet anymore
                                         
                                         temp_success,temp_delimeter = self.attempt_to_read_file(absolute_path_to_file,key,header_to_return)
                                         if(temp_success > most_successful_percentage):
@@ -386,6 +393,7 @@ class histogram:
                                 
                         else:
                                 max_corresponding_key = hard_coded_delimeter
+                                most_successful_percentage = 0
 
 			header_to_return = ''
 			for each_column in header.split(max_corresponding_key):
@@ -437,6 +445,8 @@ class histogram:
                         self.headers = fixed_headers
 		else:
                         fixed_headers = None
+                        max_corresponding_key = ''
+                        most_successful_percentage = float(0.0)
                         self.caught_errors.append(7)
                         for error_message in self.error_codes[7]:
                                 temp = error_message

@@ -249,6 +249,25 @@ class histogram:
 			# Need come back and make sure that at this point we are dealing with all absolute paths
 			# getcwd() will only work will only work when the file is being opened from the directory
 			# the program is being run from
+
+                        dot_loc = list(find_all_return_generator(self.filename,'.'))[-1]
+
+                        if(self.os_type == 'linux' or self.os_type == 'macintosh'):
+                                slash_loc = list(find_all_return_generator(self.filename,'/'))[-1]
+                                if(dot_loc > slash_loc):
+                                        file_type = self.filename[dot_loc+1:]
+                                else:
+                                        file_type = self.filename[slash_loc+1:]
+                        elif(self.os_type == 'windows'):
+                                slash_loc = list(find_all_return_generator(self.filename,'\\'))[-1]
+                                if(dot_loc > slash_loc):
+                                        file_type = self.filename[dot_loc+1:]
+                                else:
+                                        file_type = self.filename[slash_loc+1:]
+                        else:
+                                file_type = None
+                                # Raise Error COME BACK AND WRITE ERROR MESSAGE
+			
 			file_info = os.stat(os.path.join(self.path,self.filename))
 			self.file_list[self.path] = nt(self.path,
                                                        datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
@@ -258,7 +277,7 @@ class histogram:
                                                        file_info.st_size,
                                                        'Folder' if os.path.isdir(self.path) else 'File',
 						       self.get_headers(self.path + self.filename),
-                                                       None,
+                                                       file_type,
                                                        None)
 		elif(self.path_type == 'directory'):
 			for filename in os.listdir(self.path):
@@ -286,7 +305,7 @@ class histogram:
 		run_time = (time_end - time_begin).seconds
 		compatibility_print("Path parsed in: "+str(run_time)+" seconds.")
 
-	def get_headers(self,absolute_path_to_file,hard_coded_delimeter=None,attempted_headers_and_success_rate=[],headers_yet_to_try=[]):
+	def get_headers(self,absolute_path_to_file,hard_coded_delimeter=None):#,attempted_headers_and_success_rate=[],headers_yet_to_try=[]):
                 """
                 Assumptions
                         1)   Only alphanumeric characters will be used as headers.  Namedtuples cannot use strange characters as headers.
@@ -332,7 +351,7 @@ class histogram:
                                         else:
                                                 count_chars[char] = count_chars[char] + 1
 
-                                # Identify whihc delimeter occurs the most in the header
+                                # Identify which delimeter occurs the most in the header
                                 max_count = 0
                                 max_corresponding_key = unique_chars_in_header[0]
                                 for key in count_chars.keys():
@@ -343,6 +362,28 @@ class histogram:
                                 if((ord(max_corresponding_key) >= 65 and ord(max_corresponding_key) <= 90) or (ord(max_corresponding_key) >= 97 and ord(max_corresponding_key) <= 122) or (ord(max_corresponding_key) == 32)):
                                         # The files has only one column and the first line is the header
                                         max_corresponding_key = '21jk3jk,m,mf^ff_this_plain_simply_does_exist_zzxcoisdfmgksmn342k53mkfmdsk'
+
+                                most_successful_delimeter = ''
+                                most_successful_percentage = 0
+
+                                # Alternative approach where we calculate the success of finding the header
+                                for key in count_chars:
+
+                                        header_to_return = ''
+                                        for each_column in header.split(max_corresponding_key):
+                                                temp_header = each_column.strip().replace(' ','_') + ' '
+                                                # Namedtuple cannot begin with an underscore
+                                                while(temp_header[0] == '_'):
+                                                        temp_header = temp_header[1:]
+                                                header_to_return += temp_header
+                                        header_to_return = header_to_return.strip()
+                                        
+                                        temp_success,temp_delimeter = self.attempt_to_read_file(absolute_path_to_file,key,header_to_return)
+                                        if(temp_success > most_successful_percentage):
+                                                most_successful_percentage = temp_success
+                                                most_successful_delimeter = temp_delimeter
+                                max_corresponding_key = most_successful_delimeter
+                                
                         else:
                                 max_corresponding_key = hard_coded_delimeter
 
@@ -367,6 +408,7 @@ class histogram:
                                         found_error = True
                                         invalid_chars = []
                                         found_invalid_header = False
+                                        #Somewhere in here attmpt_to_fix header
                                         for char in header:
                                                 if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
                                                         pass
@@ -404,7 +446,7 @@ class histogram:
 
                 # Check to make sure headers contain only alpha numeric characters
                 
-                return fixed_headers
+                return fixed_headers,max_corresponding_key,most_successful_percentage
 
         def attempt_to_read_file(self,absolute_path_to_file,delimeter,headers):
                 """
@@ -435,8 +477,8 @@ class histogram:
                         temp = (float(successful_insert))/float(counter)*100
                 except ZeroDivisionError:
                         temp = float(0)
-                print("{0:.2f}".format(temp)+"%")
-                return ans
+                #print("{0:.2f}".format(temp)+"%")
+                return float("{0:.2f}".format(temp)),delimeter
                 #compatibility_print("Succeeded:",str(successful_insert))
                 #compatibility_print("Failed   :",str(failure_insert))
 

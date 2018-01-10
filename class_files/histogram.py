@@ -458,7 +458,7 @@ class histogram:
                 
                 return fixed_headers,max_corresponding_key,most_successful_percentage
 
-        def attempt_to_read_file(self,absolute_path_to_file,delimeter,headers):
+        def attempt_to_read_file(self,absolute_path_to_file,headers,delimeter=None):
                 """
                 Pass in the absolute path to the file and the delimeter and this will read the file and return:
                         lines read correctly
@@ -491,6 +491,72 @@ class histogram:
                 return float("{0:.2f}".format(temp)),delimeter
                 #compatibility_print("Succeeded:",str(successful_insert))
                 #compatibility_print("Failed   :",str(failure_insert))
+
+        def get_header_and_delimeter_v2(self,absolute_path_to_file,delimeter=None):
+                if(delimeter == None):
+                        readfile = open(absolute_path_to_file,'r')
+                        header = readfile.readline().strip()
+                        readfile.close()
+                        del readfile
+
+                        unique_chars_in_header = list(set(header))
+                        count_chars = {}
+                        for char in unique_chars_in_header:
+                                count_chars[char] = 0
+                        for char in header:
+                                # Exclude a-z,A-Z and spaces from being considered as delimeters
+                                if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
+                                        pass
+                                else:
+                                        count_chars[char] = count_chars[char] + 1
+
+                        temp = {}
+                        # Remove the alphanumeric characters from consideration of being a delimeter
+                        for key in count_chars:
+                                if(count_chars[key] == 0):
+                                        pass
+                                else:
+                                        temp[key] = count_chars[key]
+                        count_chars = temp
+
+                        for test_delimeter in count_chars:
+                                self.get_header_and_delimeter_v2(absolute_path_to_file,test_delimeter)
+                        
+                else:
+                        readfile = open(absolute_path_to_file,'r')
+                        header = readfile.readline()
+                        readfile.close()
+                        del readfile
+
+                        fixed_headers = ''
+                        temp_header = header.split(delimeter)
+                        for each_column in temp_header:
+                                if(each_column.isalpha()):
+                                        fixed_headers += each_column + ' '
+                                else:
+                                        this_column = ''
+                                        for each_char in each_column:
+                                                if((ord(each_char) >= 48 and ord(each_char) <= 57)
+                                                   or each_char.isalpha()
+                                                   or (ord(each_char) >= 97 and ord(each_char) <= 122)
+                                                   or (ord(each_char) == 95)
+                                                   or (ord(each_char) == 45)):
+                                                        this_column += each_char
+                                                else:
+                                                        pass
+                                                        #compatibility_print(each_char + ' is invalid')
+                                                        # Raise Error
+
+                                        if(len(this_column) > 0):
+                                        
+                                                # Make sure the beginning is a character and not a number or other character
+                                                while(this_column[0].isalpha() == False):
+                                                        this_column = this_column[1:]
+                                        fixed_headers += this_column + ' '
+                        fixed_headers = fixed_headers.strip()
+
+                        #print(self.attempt_to_read_file(self,absolute_path_to_file,delimeter,fixed_headers))
+                        #return self.attempt_to_read_file(absolute_path_to_file,fixed_headers,delimeter)
 
 	# Does a Primary Key Exist?
 	def get_primary_key(self,lines_to_check=9999):

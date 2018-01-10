@@ -36,11 +36,15 @@ if(my_platform == 'linux'):
     
 elif(my_platform == 'win'):
     #a = histogram('..\\input_files\\file_1.txt')
-    #b = histogram('..\\..\\input_files\\file_1.txt')
-    #c = histogram('..\\..\\..\\input_files\\good_times\\file_1.txt')
-    #d = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
-    #e = histogram('..\\input_files\\file_2.txt')
-    f = histogram('..\\input_files\\file_3.txt')
+    #b = histogram('..\\input_files\\file_2.txt')
+    #c = histogram('..\\input_files\\file_3.txt')
+    #d = histogram('..\\..\\input_files\\file_1.txt')
+    #e = histogram('..\\..\\..\\input_files\\good_times\\file_1.txt')
+    #f = histogram('E:\\Coding\\Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt')
+    a = histogram('..\\input_files\\commits_since_last_release_by_commit.input')
+    b = histogram('..\\input_files\\commits_since_last_release_by_timestamp.input')
+    c = histogram('..\\input_files\\parent_branches.txt')
+    d = histogram('..\\input_files\\latest_commit.input')
 
     #a = f.attempt_to_read_file(f.path + f.filename,'_',' '.join(f.get_headers(f.path + f.filename)))
     #b = f.attempt_to_read_file(f.path + f.filename,',',' '.join(f.get_headers(f.path + f.filename,',')))

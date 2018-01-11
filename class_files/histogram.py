@@ -429,7 +429,9 @@ class histogram:
                         else:
                                 try:
                                         # Attempt to insert the data in the namedtuple
-                                        ans.append(nt_read(*line.strip().split(delimiter)))
+                                        #ans.append(nt_read(*line.strip().split(delimiter)))
+                                        
+                                        ans.append(nt_read(*[x.strip() for x in line.split('|')]))
 
                                         # Increment Successes
                                         successful_insert += 1

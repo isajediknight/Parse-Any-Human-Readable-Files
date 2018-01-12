@@ -242,6 +242,12 @@ class histogram:
                 # This will contain the data of the file if so desired
                 self.file_data = {}
 
+                # This will count the lines in the file
+                self.file_line_count = {}
+
+                # This contains uniqueness of data in the file
+                self.file_histogram = {}
+
 		# Save delimiter and Header attempts
 		self.delimiter_header_attempts = {}
 
@@ -413,8 +419,7 @@ class histogram:
                 # Open the file for reading
 		readfile = open(absolute_path_to_file,'r')
 
-                # Count the lines we have read in
-		counter = -1
+                
 
 		# Count successful inserts
 		successful_insert = 0
@@ -422,23 +427,84 @@ class histogram:
 		# Count failed inserts
 		failure_insert = 0
 
+                # count each header
+                counter = 0
+
+                nt_placeholder = []
+
+		histogram_nt_header = ''
+		for each_header in header.split(' '):
+                        histogram_nt_header += each_header + '_header_'+str(counter)+'_value_count header_' + str(counter) +'_duplicates '
+                        nt_placeholder.append({})
+                        nt_placeholder.append({})
+                        counter += 1
+                histogram_nt_header = histogram_nt_header.strip()
+
+                nt_histogram = namedtuple('histogram',histogram_nt_header)
+
+                histogram_ans = nt_histogram(*[x for x in nt_placeholder])
+
+                # Count the lines we have read in
+		counter = -1
+		
 		for line in readfile:
                         counter += 1
+                        insert_status = False
                         if(counter == 0):
                                 pass
                         else:
                                 try:
                                         # Attempt to insert the data in the namedtuple
                                         #ans.append(nt_read(*line.strip().split(delimiter)))
-                                        
-                                        ans.append(nt_read(*[x.strip() for x in line.split('|')]))
+
+                                        ans.append(nt_read(*[x.strip() for x in line.split(delimiter)]))
 
                                         # Increment Successes
                                         successful_insert += 1
+                                        insert_status = True
+                                        #print("Success",line)
                                 except:
                                         # Increment Failures
                                         failure_insert += 1
+                                        #print("Failure",line)
 
+                                if(insert_status):
+                                        #try:
+                                        value_counter = 0
+                                        for values in [x.strip() for x in line.split(delimiter)]:
+                                                if(values in histogram_ans[value_counter]):
+                                                        histogram_ans[value_counter - 1]['duplicate_count'] = histogram_ans[value_counter - 1]['duplicate_count'] + 1
+                                                        histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
+                                                else:
+                                                        histogram_ans[value_counter][values] = 1
+                                                        histogram_ans[value_counter - 1]['duplicate_count'] = 0
+                                                value_counter += 2
+                                        #except:
+                                        #        #pass
+                                        #        print([x.strip() for x in line.split(delimiter)])
+                                
+                                #try:
+                                #        # Attempt to insert the data in the namedtuple
+                                #        #ans.append(nt_read(*line.strip().split(delimiter)))
+                                #        
+                                #        ans.append(nt_read(*[x.strip() for x in line.split(delimiter)]))
+                                #
+                                #        value_counter = 0
+                                #        for values in [x.strip() for x in line.split(delimiter)]:
+                                #                if(values in histogram_ans[value_counter].keys()):
+                                #                        histogram_ans[value_counter - 1] = histogram_ans[value_counter - 1] + 1
+                                #                        histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
+                                #                else:
+                                #                        histogram_ans[value_counter][values] = 1
+                                #                        histogram_ans[value_counter - 1] = 1
+                                #                value_counter += 2
+                                #
+                                #        # Increment Successes
+                                #        successful_insert += 1
+                                #except:
+                                #        # Increment Failures
+                                #        failure_insert += 1
+                                
                 try:
                         temp = (float(successful_insert))/float(counter)*100
                 except ZeroDivisionError:
@@ -448,6 +514,8 @@ class histogram:
                 compatibility_print("Percent Successful: "+str("{0:.2f}".format(temp))+'%')
 
                 self.file_data[absolute_path_to_file] = ans
+                self.file_line_count[absolute_path_to_file] = counter
+                self.file_histogram[absolute_path_to_file] = histogram_ans
 
                 readfile.close()
 

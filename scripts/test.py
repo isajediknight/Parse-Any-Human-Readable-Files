@@ -32,7 +32,7 @@ if(my_platform == 'linux'):
     h = histogram('/home/luke/github/readitall/class_files/file_1.txt')
     #c.get_file_list()'C:\\Users\\LB023593\\Documents\\Stories\\Public_Github\\Parse-Any-Human-Readable-Files\\input_files\\file_1.txt'
     #print(len(c.file_list))
-    print h.file_list
+    print(h.file_list)
     
 elif(my_platform == 'win'):
     z = histogram('..\\input_files\\file_1.txt')

@@ -108,7 +108,8 @@ class histogram:
                 else:
                         temp_path = path
 
-                temp_path_dot_locs = list(find_all_return_generator(temp_path,'..'))
+                # Find all the up-one-directories
+                double_dot_locs = list(find_all_return_generator(temp_path,'..'))
 
                 # For dealing with python version compatibility
 		self.python_version = python_version()
@@ -119,15 +120,17 @@ class histogram:
                         self.filename = temp_path[temp_path_slash_locs[-1]+1:]
 
                         # If we are given a relative path make it an absolute path
-                        if(len(temp_path_dot_locs) > 0):
+                        if(len(double_dot_locs) > 0):
                                 getcwd_slash_locs = list(find_all_return_generator(getcwd(),'/'))
-                                self.path = getcwd()[:getcwd_slash_locs[-len(temp_path_dot_locs)]] + temp_path[temp_path_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
+                                self.path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
                         else:
                                 self.path = temp_path
 
                         # I am lazy - really lazy ...
+                        # If the filename is at the end - remove it
                         self.path = self.path.replace(self.filename, '')
 
+                        # Detect what we were given
                         if(os.path.isdir(self.path + self.filename)):
                                 self.path_type = 'directory'
                                 self.filename = None
@@ -152,9 +155,9 @@ class histogram:
                         self.filename = temp_path[temp_path_slash_locs[-1]+1:]
 
                         # If we are given a relative path make it an absolute path
-                        if(len(temp_path_dot_locs) > 0):
+                        if(len(double_dot_locs) > 0):
                                 getcwd_slash_locs = list(find_all_return_generator(getcwd(),'\\'))
-                                self.path = getcwd()[:getcwd_slash_locs[-len(temp_path_dot_locs)]] + temp_path[temp_path_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '\\'
+                                self.path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '\\'
                         else:
                                 self.path = temp_path
 
@@ -170,6 +173,7 @@ class histogram:
                                 path_slash_locs = list(find_all_return_generator(self.path,'\\'))
                                 self.path = self.path[:path_slash_locs[-1]] + '\\'
                         else:
+                                # We shouldn't ever run into this.  Everything should be a file or a directory.
                                 self.path_type = 'invalid'
                                 self.caught_errors.append(7)
                                 for error_message in self.error_codes[7]:
@@ -184,9 +188,9 @@ class histogram:
                         self.filename = temp_path[temp_path_slash_locs[-1]+1:]
 
                         # If we are given a relative path make it an absolute path
-                        if(len(temp_path_dot_locs) > 0):
+                        if(len(double_dot_locs) > 0):
                                 getcwd_slash_locs = list(find_all_return_generator(getcwd(),'/'))
-                                self.path = getcwd()[:getcwd_slash_locs[-len(temp_path_dot_locs)]] + temp_path[temp_path_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
+                                self.path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
                         else:
                                 self.path = temp_path
 

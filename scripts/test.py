@@ -35,8 +35,8 @@ if(my_platform == 'linux'):
     print(h.file_list)
     
 elif(my_platform == 'win'):
-    z = histogram('..\\input_files\\file_1.txt')
-    z.read_file(z.file_list.keys()[0],z.file_list[z.file_list.keys()[0]].delimiter,z.file_list[z.file_list.keys()[0]].header)
+    #z = histogram('..\\input_files\\file_1.txt')
+    #z.read_file(z.file_list.keys()[0],z.file_list[z.file_list.keys()[0]].delimiter,z.file_list[z.file_list.keys()[0]].header)
     #b = histogram('..\\input_files\\file_2.txt')
     #c = histogram('..\\input_files\\file_3.txt')
     #d = histogram('..\\..\\input_files\\file_1.txt')
@@ -61,5 +61,8 @@ elif(my_platform == 'win'):
     #a = f.attempt_to_read_file(f.path + f.filename,'_',' '.join(f.get_headers(f.path + f.filename)))
     #b = f.attempt_to_read_file(f.path + f.filename,',',' '.join(f.get_headers(f.path + f.filename,',')))
     #c = f.attempt_to_read_file(f.path + f.filename,'|',' '.join(f.get_headers(f.path + f.filename,'|')))
+
+    g = histogram('..\\input_files\\')
+    g.read_all_files()
 else:
     print("Unknown OS")

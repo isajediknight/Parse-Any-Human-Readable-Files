@@ -88,6 +88,7 @@ class histogram:
         python_key_words = ['False','class','finally','is','return','None','continue','for','lambda','try','True','def','from',
                             'nonlocal','while','and','del','global','not','with','as','elif','if','or','yield','assert','else',
                             'import','pass','break','except','in','raise']
+        invalid_nt_field_chars = ['-']
 
 	def __init__(self,path):
 		# Benchmark all the things!
@@ -258,8 +259,6 @@ class histogram:
                 # Get basic data about the file / directory
                 self.get_file_list()
 
-                
-
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
 		compatibility_print("Initialized in: "+str(run_time)+" seconds.")
@@ -297,7 +296,7 @@ class histogram:
                                 file_type = None
                                 # Raise Error COME BACK AND WRITE ERROR MESSAGE
 
-                        # NEEDTO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
+                        # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
                         if((self.path + self.filename) not in self.delimiter_header_attempts):
                                 self.get_header_and_delimiter(self.path + self.filename)
 
@@ -326,16 +325,72 @@ class histogram:
 			for filename in os.listdir(self.path):
 				file_info = os.stat(os.path.join(self.path,filename))
 				# need to add logic to check if windows or linux to fix slashes
-				self.file_list[filename] = nt(filename,
-						              datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
-						  	      datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
-						  	      datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-						  	      self.path,
-						  	      file_info.st_size,
-						  	      'Directory' if os.path.isdir(self.path + filename) else 'File',
-							      None,
-                                                              None,
-                                                              None)
+
+                                if(os.path.isdir(self.path + filename) == False):
+                                        dot_loc = list(find_all_return_generator(filename,'.'))[-1]
+
+                                        if(self.os_type == 'linux' or self.os_type == 'macintosh'):
+                                                slash_loc = list(find_all_return_generator(filename,'/'))[-1]
+                                                if(dot_loc > slash_loc):
+                                                        file_type = filename[dot_loc+1:]
+                                                else:
+                                                        file_type = filename[slash_loc+1:]
+                                        elif(self.os_type == 'windows'):
+                                                try:
+                                                        slash_loc = list(find_all_return_generator(filename,'\\'))[-1]
+                                                except:
+                                                        slash_loc = -1
+                                
+                                                if(dot_loc > slash_loc):
+                                                        file_type = filename[dot_loc+1:]
+                                                else:
+                                                        file_type = filename[slash_loc+1:]
+                                        else:
+                                                file_type = None
+                                                # Raise Error COME BACK AND WRITE ERROR MESSAGE
+
+                                        # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
+                                        if((self.path + filename) not in self.delimiter_header_attempts):
+                                                self.get_header_and_delimiter(self.path + filename)
+
+                                        most_success_delimiter = ''
+                                        most_success_percentage = float(0.0)
+                                        most_success_header = ''
+
+                                        try:
+                                                for attempt in range(len(self.delimiter_header_attempts[self.path + filename])):
+                                                        if(self.delimiter_header_attempts[self.path + filename][attempt].success_percentage > most_success_percentage):
+                                                                most_success_delimiter = self.delimiter_header_attempts[self.path + filename][attempt].delimiter
+                                                                most_success_percentage = self.delimiter_header_attempts[self.path + filename][attempt].success_percentage
+                                                                most_success_header = self.delimiter_header_attempts[self.path + filename][attempt].headers
+          
+                                                self.file_list[self.path + filename] = nt(filename,
+                                                                                          datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
+                                                                                          datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
+                                                                                          datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
+                                                                                          self.path,
+                                                                                          file_info.st_size,
+                                                                                          'Directory' if os.path.isdir(self.path + filename) else 'File',
+                                                                                          most_success_header,
+                                                                                          file_type,
+                                                                                          most_success_delimiter)
+                                
+
+                                        except KeyError:
+                                                compatibility_print("Create new Error here.  self.path + filename has no non alphanumeric headers")
+                                else:
+                                        self.file_list[self.path + filename] = nt(None,
+                                                                                  datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
+                                                                                  datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
+                                                                                  datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
+                                                                                  self.path,
+                                                                                  file_info.st_size,
+                                                                                  'Directory' if os.path.isdir(self.path + filename) else 'File',
+                                                                                  None,
+                                                                                  None,
+                                                                                  None)
+                                        
+				
 		else:
 			self.caught_errors.append(7)
                         for error_message in self.error_codes[7]:
@@ -423,8 +478,6 @@ class histogram:
                 # Open the file for reading
 		readfile = open(absolute_path_to_file,'r')
 
-                
-
 		# Count successful inserts
 		successful_insert = 0
 
@@ -438,7 +491,8 @@ class histogram:
 
 		histogram_nt_header = ''
 		for each_header in header.split(' '):
-                        histogram_nt_header += each_header + '_header_'+str(counter)+'_value_count header_' + str(counter) +'_duplicates '
+                        fix_start_with_underscore = '' if(len(each_header) == 0) else each_header + '_'
+                        histogram_nt_header +=  fix_start_with_underscore + 'header_'+str(counter)+'_value_count header_' + str(counter) +'_duplicates '
                         nt_placeholder.append({})
                         nt_placeholder.append({})
                         counter += 1
@@ -523,6 +577,14 @@ class histogram:
 
                 readfile.close()
 
+        def read_all_files(self):
+                """
+                Reads in the data from all the files in the directory
+                """
+                for file_key in self.file_list.keys():
+                        if(self.file_list[file_key].type == 'File'):
+                                self.read_file(self.file_list[file_key].directory + self.file_list[file_key].filename,self.file_list[file_key].delimiter,self.file_list[file_key].header)
+
         def get_header_and_delimiter(self,absolute_path_to_file,delimiter=None):
                 """
                 Recursive method if no delimiter is passed in.
@@ -573,6 +635,12 @@ class histogram:
                                                 if(each_column == key_word):
                                                         each_column = each_column.replace(key_word,'RENAMED_'+key_word+'_'+str(counter))
                                                         counter += 1
+                                                        
+                                        # Remove invlaid chars from namedtuple column names
+                                        for invalid_char in self.invalid_nt_field_chars:
+                                                if(invalid_char in each_column):
+                                                        each_column = each_column.replace(invalid_char,'RENAMED_INVALID_CHAR_'+str(counter))
+                                                        counter += 1
                                         
                                         fixed_headers += each_column + ' '
                                 else:
@@ -581,8 +649,7 @@ class histogram:
                                                 if((ord(each_char) >= 48 and ord(each_char) <= 57)
                                                    or each_char.isalpha()
                                                    or (ord(each_char) >= 97 and ord(each_char) <= 122)
-                                                   or (ord(each_char) == 95)
-                                                   or (ord(each_char) == 45)):
+                                                   or (ord(each_char) == 95)):
                                                         this_column += each_char
                                                 else:
                                                         pass
@@ -601,8 +668,9 @@ class histogram:
                                         if(len(this_column) > 0):
                                         
                                                 # Make sure the beginning is a character and not a number or other character
-                                                while(this_column[0].isalpha() == False):
+                                                while(len(this_column) > 0 and this_column[0].isalpha() == False):
                                                         this_column = this_column[1:]
+                                                        
                                         fixed_headers += this_column + ' '
                         fixed_headers = fixed_headers.strip()
 

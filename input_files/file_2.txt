@@ -1,4 +1,4 @@
-HeaderBitches
-1234
-asdf
-qwerty
+HeaderBitches|lawl
+1234|yes
+asdf|lawl
+qwerty|indeed

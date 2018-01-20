@@ -241,6 +241,12 @@ class histogram:
 		##else:
 		##	self.path_type = 'unknown'
 
+                # Get list of all files and directories from a path
+                # Includes subdirectories recursively
+                self.dirs_files_to_loop_through = []
+
+                self.build_all_directory_file_list(self.path + ('' if self.filename == None else self.filename))
+
                 # Master variable which will contain all the metadata about the directory or filename passed in
 		self.file_list = {}
 
@@ -256,77 +262,89 @@ class histogram:
 		# Save delimiter and Header attempts
 		self.delimiter_header_attempts = {}
 
-                # Get basic data about the file / directory
-                self.get_file_list()
+
+                for each_object in self.dirs_files_to_loop_through:
+                        # Get basic data about the file / directory
+                        self.get_file_list(each_object)
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
 		compatibility_print("Initialized in: "+str(run_time)+" seconds.")
 
-	def get_file_list(self):
+        # DAMNIT!!!!!!!!!!!!!!!
+	def get_file_list(self,next_object):
                 # Benchmark all the things!
 		time_begin = datetime.datetime.now()
-		
+
+                if(next_filename == None or next_filename == ''):
+                       next_path = self.path
+                       next_filename = '' if self.filename == None else self.filename
+
+                if(os.path.isdir(next_path + next_filename)):
+                        which_type = 'directory'
+                elif(os.path.isfile(next_path + next_filename)):
+                        which_type = 'file'
+                else:
+                        which_type = 'error'
+
+		# Data points we want to capture
 		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter')
-		if(self.path_type == 'file'):
-			# Need come back and make sure that at this point we are dealing with all absolute paths
-			# getcwd() will only work will only work when the file is being opened from the directory
-			# the program is being run from
+		
+		if(which_type == 'file'):
 
                         # Need to add logic for filenames with no dot
-                        dot_loc = list(find_all_return_generator(self.filename,'.'))[-1]
+                        dot_loc = list(find_all_return_generator(next_filename,'.'))[-1]
 
                         if(self.os_type == 'linux' or self.os_type == 'macintosh'):
-                                slash_loc = list(find_all_return_generator(self.filename,'/'))[-1]
+                                slash_loc = list(find_all_return_generator(next_filename,'/'))[-1]
                                 if(dot_loc > slash_loc):
-                                        file_type = self.filename[dot_loc+1:]
+                                        file_type = next_filename[dot_loc+1:]
                                 else:
-                                        file_type = self.filename[slash_loc+1:]
+                                        file_type = next_filename[slash_loc+1:]
                         elif(self.os_type == 'windows'):
                                 try:
-                                        slash_loc = list(find_all_return_generator(self.filename,'\\'))[-1]
+                                        slash_loc = list(find_all_return_generator(next_filename,'\\'))[-1]
                                 except:
                                         slash_loc = -1
                                 
                                 if(dot_loc > slash_loc):
-                                        file_type = self.filename[dot_loc+1:]
+                                        file_type = next_filename[dot_loc+1:]
                                 else:
-                                        file_type = self.filename[slash_loc+1:]
+                                        file_type = next_filename[slash_loc+1:]
                         else:
                                 file_type = None
                                 # Raise Error COME BACK AND WRITE ERROR MESSAGE
 
                         # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
-                        if((self.path + self.filename) not in self.delimiter_header_attempts):
-                                self.get_header_and_delimiter(self.path + self.filename)
+                        if((next_path + next_filename) not in self.delimiter_header_attempts):
+                                self.get_header_and_delimiter(next_path + next_filename)
 
                         most_success_delimiter = ''
                         most_success_percentage = float(0.0)
                         most_success_header = ''
 
-                        for attempt in range(len(self.delimiter_header_attempts[self.path + self.filename])):
-                                if(self.delimiter_header_attempts[self.path + self.filename][attempt].success_percentage > most_success_percentage):
-                                        most_success_delimiter = self.delimiter_header_attempts[self.path + self.filename][attempt].delimiter
-                                        most_success_percentage = self.delimiter_header_attempts[self.path + self.filename][attempt].success_percentage
-                                        most_success_header = self.delimiter_header_attempts[self.path + self.filename][attempt].headers
+                        for attempt in range(len(self.delimiter_header_attempts[next_path + next_filename])):
+                                if(self.delimiter_header_attempts[next_path + next_filename][attempt].success_percentage > most_success_percentage):
+                                        most_success_delimiter = self.delimiter_header_attempts[next_path + next_filename][attempt].delimiter
+                                        most_success_percentage = self.delimiter_header_attempts[next_path + next_filename][attempt].success_percentage
+                                        most_success_header = self.delimiter_header_attempts[next_path + next_filename][attempt].headers
 			
-			file_info = os.stat(os.path.join(self.path,self.filename))
-			self.file_list[self.path+self.filename] = nt(self.filename,
+			file_info = os.stat(os.path.join(next_path,next_filename))
+			self.file_list[next_path+next_filename] = nt(next_filename,
                                                        datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
                                                        datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
                                                        datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-                                                       self.path,
+                                                       next_path,
                                                        file_info.st_size,
-                                                       'Directory' if os.path.isdir(self.path+self.filename) else 'File',
+                                                       'Directory' if os.path.isdir(next_path+next_filename) else 'File',
 						       most_success_header,
                                                        file_type,
                                                        most_success_delimiter)
-		elif(self.path_type == 'directory'):
-			for filename in os.listdir(self.path):
-				file_info = os.stat(os.path.join(self.path,filename))
-				# need to add logic to check if windows or linux to fix slashes
+		elif(which_type == 'directory'):
+			for filename in os.listdir(next_path):
+				file_info = os.stat(os.path.join(next_path,filename))
 
-                                if(os.path.isdir(self.path + filename) == False):
+                                if(os.path.isdir(next_path + filename) == False):
                                         dot_loc = list(find_all_return_generator(filename,'.'))[-1]
 
                                         if(self.os_type == 'linux' or self.os_type == 'macintosh'):
@@ -351,26 +369,26 @@ class histogram:
 
                                         # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
                                         if((self.path + filename) not in self.delimiter_header_attempts):
-                                                self.get_header_and_delimiter(self.path + filename)
+                                                self.get_header_and_delimiter(next_path + filename)
 
                                         most_success_delimiter = ''
                                         most_success_percentage = float(0.0)
                                         most_success_header = ''
 
                                         try:
-                                                for attempt in range(len(self.delimiter_header_attempts[self.path + filename])):
+                                                for attempt in range(len(self.delimiter_header_attempts[next_path + filename])):
                                                         if(self.delimiter_header_attempts[self.path + filename][attempt].success_percentage > most_success_percentage):
-                                                                most_success_delimiter = self.delimiter_header_attempts[self.path + filename][attempt].delimiter
-                                                                most_success_percentage = self.delimiter_header_attempts[self.path + filename][attempt].success_percentage
-                                                                most_success_header = self.delimiter_header_attempts[self.path + filename][attempt].headers
+                                                                most_success_delimiter = self.delimiter_header_attempts[next_path + filename][attempt].delimiter
+                                                                most_success_percentage = self.delimiter_header_attempts[next_path + filename][attempt].success_percentage
+                                                                most_success_header = self.delimiter_header_attempts[next_path + filename][attempt].headers
           
-                                                self.file_list[self.path + filename] = nt(filename,
+                                                self.file_list[next_path + filename] = nt(filename,
                                                                                           datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
                                                                                           datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
                                                                                           datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-                                                                                          self.path,
+                                                                                          next_path,
                                                                                           file_info.st_size,
-                                                                                          'Directory' if os.path.isdir(self.path + filename) else 'File',
+                                                                                          'Directory' if os.path.isdir(next_path + filename) else 'File',
                                                                                           most_success_header,
                                                                                           file_type,
                                                                                           most_success_delimiter)
@@ -378,30 +396,45 @@ class histogram:
 
                                         except KeyError:
                                                 compatibility_print("Create new Error here.  self.path + filename has no non alphanumeric headers")
+                                
+                                # We're dealing with a directory
                                 else:
-                                        self.file_list[self.path + filename] = nt(None,
+                                        
+                                        self.file_list[next_path + filename] = nt(filename,
                                                                                   datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
                                                                                   datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
                                                                                   datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-                                                                                  self.path,
+                                                                                  next_path,
                                                                                   file_info.st_size,
-                                                                                  'Directory' if os.path.isdir(self.path + filename) else 'File',
+                                                                                  'Directory' if os.path.isdir(next_path + filename) else 'File',
                                                                                   None,
                                                                                   None,
                                                                                   None)
+                                        
+                                        
+                                        
+                                        
+
                                         
 				
 		else:
 			self.caught_errors.append(7)
                         for error_message in self.error_codes[7]:
                                 temp = error_message
-                                temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
+                                temp = temp.replace('REPLACE_WITH_self.path',next_path)
+                                temp = temp.replace('REPLACE_WITH_self.filename',next_filename)
                                 compatibility_print(temp)
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
 		compatibility_print("Path parsed in: "+str(run_time)+" seconds.")
+
+        def build_all_directory_file_list(self,next_check):
+                for filename in os.listdir(next_check):
+                        fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
+                        if(os.path.isdir(next_check + fail + filename) and (next_check + fail + filename) not in self.dirs_files_to_loop_through):
+                                self.build_all_directory_file_list(next_check + fail + filename)
+                        self.dirs_files_to_loop_through.append(next_check + fail + filename)
 
         def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000):
                 """

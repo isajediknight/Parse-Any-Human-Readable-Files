@@ -63,6 +63,6 @@ elif(my_platform == 'win'):
     #c = f.attempt_to_read_file(f.path + f.filename,'|',' '.join(f.get_headers(f.path + f.filename,'|')))
 
     g = histogram('..\\input_files\\')
-    g.read_all_files()
+    #g.read_all_files()
 else:
     print("Unknown OS")

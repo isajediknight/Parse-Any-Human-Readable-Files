@@ -262,10 +262,10 @@ class histogram:
 		# Save delimiter and Header attempts
 		self.delimiter_header_attempts = {}
 
-
-                for each_object in self.dirs_files_to_loop_through:
-                        # Get basic data about the file / directory
-                        self.get_file_list(each_object)
+                #for each_object in self.dirs_files_to_loop_through:
+                #        # Get basic data about the file / directory
+                #        self.get_file_list(each_object)
+                self.get_all_file_info()
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
@@ -429,12 +429,92 @@ class histogram:
 		run_time = (time_end - time_begin).seconds
 		compatibility_print("Path parsed in: "+str(run_time)+" seconds.")
 
+        def get_all_file_info(self):
+                """
+                Version 2 of this.  Decided to do the recursive search prior to reading in all the info.
+                """
+                if(len(self.dirs_files_to_loop_through) == 0):
+                        build_all_directory_file_list(self.path)
+
+                # Data points we want to capture
+		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter success_percentage')
+
+                for dir_or_file in self.dirs_files_to_loop_through:
+
+                        if(len(list(find_all_return_generator(dir_or_file,'.'))) == 0):
+                                # It's likely we're dealing with a directory
+                                dot_loc = -1
+                        else:
+                                dot_loc = list(find_all_return_generator(dir_or_file,'.'))[-1]
+                        
+                        if(self.os_type == 'linux' or self.os_type == 'macintosh'):
+                                slash_loc = list(find_all_return_generator(dir_or_file,'/'))[-1]
+                                if(dot_loc > slash_loc):
+                                        file_type = dir_or_file[dot_loc+1:]
+                                else:
+                                        file_type = dir_or_file[slash_loc+1:]
+                        elif(self.os_type == 'windows'):
+                                try:
+                                        slash_loc = list(find_all_return_generator(dir_or_file,'\\'))[-1]
+                                except:
+                                        slash_loc = -1
+                                
+                                if(dot_loc > slash_loc):
+                                        file_type = dir_or_file[dot_loc+1:]
+                                else:
+                                        file_type = dir_or_file[slash_loc+1:]
+                        else:
+                                pass
+                                # Raise Error
+
+                        filename = '' if os.path.isdir(dir_or_file) else dir_or_file[slash_loc+1:]
+
+                        # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
+                        if((dir_or_file) not in self.delimiter_header_attempts):
+                                self.get_header_and_delimiter(dir_or_file)
+
+                        most_success_delimiter = ''
+                        most_success_percentage = float(0.0)
+                        most_success_header = ''
+                        
+                        for attempt in range(len(self.delimiter_header_attempts[dir_or_file])):
+                                if(self.delimiter_header_attempts[dir_or_file][attempt].success_percentage > most_success_percentage):
+                                        most_success_delimiter = self.delimiter_header_attempts[dir_or_file][attempt].delimiter
+                                        most_success_percentage = self.delimiter_header_attempts[dir_or_file][attempt].success_percentage
+                                        most_success_header = self.delimiter_header_attempts[dir_or_file][attempt].headers
+
+                        directory = dir_or_file[:slash_loc+1]
+			
+			file_info = os.stat(dir_or_file)
+			self.file_list[dir_or_file] = nt(filename,
+                                                         datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
+                                                         datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
+                                                         datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
+                                                         directory,
+                                                         file_info.st_size,
+                                                         'Directory' if os.path.isdir(dir_or_file) else 'File',
+                                                         None if os.path.isdir(dir_or_file) else most_success_header,
+                                                         None if os.path.isdir(dir_or_file) else file_type,
+                                                         None if os.path.isdir(dir_or_file) else most_success_delimiter,
+                                                         None if os.path.isdir(dir_or_file) else most_success_percentage)
+                        
+
         def build_all_directory_file_list(self,next_check):
                 for filename in os.listdir(next_check):
                         fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
-                        if(os.path.isdir(next_check + fail + filename) and (next_check + fail + filename) not in self.dirs_files_to_loop_through):
-                                self.build_all_directory_file_list(next_check + fail + filename)
-                        self.dirs_files_to_loop_through.append(next_check + fail + filename)
+                        absolute_path = next_check + fail + filename
+                        if(self.os_type == 'linux' or self.os_type == 'macintosh'):
+                                absolute_path = absolute_path.replace('//','/')
+                        elif(self.os_type == 'windows'):
+                                absolute_path = absolute_path.replace('\\\\','\\')
+                                
+                        if(os.path.isdir(absolute_path) and (absolute_path) not in self.dirs_files_to_loop_through):
+                        #if(os.path.isdir(next_check + filename) and (next_check + filename) not in self.dirs_files_to_loop_through):
+                                self.build_all_directory_file_list(absolute_path)
+                                #self.build_all_directory_file_list(next_check  + filename)
+                        self.dirs_files_to_loop_through.append(absolute_path)
+                        #print(absolute_path)
+                        #self.dirs_files_to_loop_through.append(next_check + filename)
 
         def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000):
                 """
@@ -622,7 +702,9 @@ class histogram:
                 """
                 Recursive method if no delimiter is passed in.
                 """
-                if(delimiter == None):
+                if(os.path.isdir(absolute_path_to_file)):
+                        self.delimiter_header_attempts[absolute_path_to_file] = []
+                elif(delimiter == None):
                         readfile = open(absolute_path_to_file,'r')
                         header = readfile.readline().strip()
                         readfile.close()
@@ -763,201 +845,5 @@ class histogram:
 		elif(which == 'methods'):
 			compatibility_print(" [ Methods ]",'\n\n')
 			compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')
-	def save_for_later():
-                # Are we dealing with one file, multiple files, or a directory?
-		self.path_type = 'directory' if os.path.isdir(path) else 'unknown'
-		if(self.path_type == 'unknown'):
-			self.path_type = 'file' if os.path.isfile(path) else 'unknown'
 
-		if(self.path_type == 'file'):
-			self.root_object = 'file'
-			self.is_file = True
-			self.is_dir = False
-			# try to detect file encoding here?
-		elif(self.path_type == 'directory'):
-			self.root_object = 'directory'
-			self.is_file = False
-			self.is_dir = True
-			# Loop through directory structure and get names of all files in all subfolders
-		else:
-                        self.root_object = 'unknown'
-			self.is_file = False
-			self.is_dir = False
-			#print(path,"is not valid")
-			# Raise Error
-			# Need to come back and fix this better
-			raise Exception("File Not Found: " , path)
-
-		# Path we are dealing with
-		if((self.os_type == 'linux' and self.path_type == 'file') or (self.os_type == 'macintosh' and self.path_type == 'file')):
-                        folder_locs = find_all_return_generator(path,'')
-                elif((self.os_type == 'linux' and self.path_type == 'directory') or (self.os_type == 'macintosh' and self.path_type == 'directory')):
-                        pass
-                elif(self.os_type == 'windows' and self.path_type == 'file'):
-                        pass
-                elif(self.os_type == 'windows' and self.path_type == 'directory'):
-                        pass
-                else:
-                        self.caught_errors.append(2)
-                        for error_message in self.error_codes[2]:
-                                temp = error_message
-                                temp = temp.replace('REPLACE_WITH_self.os_type',self.os_type)
-                                temp = temp.replace('REPLACE_WITH_self.path_type','unknown')#self.path_type)
-                                compatibility_print(temp)
-                        return None
-
-		# Setting this to mark get_headers as not being run yet
-		self.headers = None
-
-        def throw_away(self,absolute_path_to_file,hard_coded_delimiter=None):#,attempted_headers_and_success_rate=[],headers_yet_to_try=[]):
-                """
-                Assumptions
-                        1)   Only alphanumeric characters will be used as headers.  Namedtuples cannot use strange characters as headers.
-
-                attempted_headers_and_success_rate = []
-                        [0] = ('_',0.7)
-                        [1] = (',',0.98)
-                        [2] = ('|',0.05)
-
-                hard_coded_delimiter
-                        Assign the delimiter to this if you know it or think the wrong delimiter will be chosen
-
-                        This can also be used if your delimiter is an A-Z or a-z or ' ' as normally these are excluded from being headers
-                """
-		if(os.path.isdir(absolute_path_to_file)):
-                        self.caught_errors.append(8)
-                        for error_message in self.error_codes[8]:
-                                temp = error_message
-                                temp = temp.replace('REPLACE_WITH_absolute_path_to_file',absolute_path_to_file)
-                                compatibility_print(temp)
-			fixed_headers =  None
-		elif(os.path.isfile(absolute_path_to_file)):
-			# open the file and count the lines in it
-			#readfile = open(self.path + self.file_list[key],'r')
-			readfile = open(absolute_path_to_file,'r')
-			for line in readfile:
-				header = line.strip()
-				break
-			readfile.close()
-
-			# I forget why, but it's a good idea to delete file I/O when you are done with them
-			del readfile
-
-                        if(hard_coded_delimiter == None):
-                                unique_chars_in_header = list(set(header))
-                                count_chars = {}
-                                for char in unique_chars_in_header:
-                                        count_chars[char] = 0
-                                for char in header:
-                                        # Exclude a-z,A-Z and spaces from being considered as delimiters
-                                        if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
-                                                pass
-                                        else:
-                                                count_chars[char] = count_chars[char] + 1
-
-                                # Identify which delimiter occurs the most in the header
-                                max_count = 0
-                                max_corresponding_key = unique_chars_in_header[0]
-                                for key in count_chars.keys():
-                                        if(max_count < count_chars[key]):
-                                                max_count = count_chars[key]
-                                                max_corresponding_key = key
-
-                                if((ord(max_corresponding_key) >= 65 and ord(max_corresponding_key) <= 90) or (ord(max_corresponding_key) >= 97 and ord(max_corresponding_key) <= 122) or (ord(max_corresponding_key) == 32)):
-                                        # The files has only one column and the first line is the header
-                                        max_corresponding_key = '21jk3jk,m,mf^ff_this_plain_simply_does_exist_zzxcoisdfmgksmn342k53mkfmdsk'
-
-                                most_successful_delimiter = ''
-                                most_successful_percentage = 0
-
-                                # Remove the alphanumeric characters from consideration of being a delimiter
-                                for key in count_chars:
-                                        if(count_chars[key] == 0):
-                                                del count_chars[key]
-
-                                # Alternative approach where we calculate the success of finding the header
-                                for key in count_chars:
-
-                                        header_to_return = ''
-                                        for each_column in header.split(max_corresponding_key):
-                                                temp_header = each_column.strip().replace(' ','_') + ' '
-                                                # Namedtuple cannot begin with an underscore
-                                                while(temp_header[0] == '_'):
-                                                        temp_header = temp_header[1:]
-                                                header_to_return += temp_header
-                                        header_to_return = header_to_return.strip()
-
-                                        # i dont want to live on this planet anymore
-                                        
-                                        temp_success,temp_delimiter = self.attempt_to_read_file(absolute_path_to_file,key,header_to_return)
-                                        if(temp_success > most_successful_percentage):
-                                                most_successful_percentage = temp_success
-                                                most_successful_delimiter = temp_delimiter
-                                max_corresponding_key = most_successful_delimiter
-                                
-                        else:
-                                max_corresponding_key = hard_coded_delimiter
-                                most_successful_percentage = 0
-
-			header_to_return = ''
-			for each_column in header.split(max_corresponding_key):
-                                temp = each_column.strip().replace(' ','_') + ' '
-                                # Namedtuple cannot begin with an underscore
-                                while(temp[0] == '_'):
-                                        temp = temp[1:]
-				header_to_return += temp
-			header_to_return = header_to_return.strip()
-			self.headers = header_to_return
-			self.delimiter = max_corresponding_key
-			check_namedtuple_naming_conventions = header_to_return.split(' ')
-			fixed_headers = []
-			fixed_header_counter = 0
-			found_error = False
-			for header in check_namedtuple_naming_conventions:
-                                if(header.isalpha()):
-                                        fixed_headers.append(header)
-                                else:
-                                        found_error = True
-                                        invalid_chars = []
-                                        found_invalid_header = False
-                                        #Somewhere in here attmpt_to_fix header
-                                        for char in header:
-                                                if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)):
-                                                        pass
-                                                        # We're good
-                                                else:
-                                                        found_invalid_header = True
-                                                        invalid_chars.append(char)
-                                        fixed_header_counter += 1
-                                        temp_fix_header = header
-                                        for replace_char in invalid_chars:
-                                                temp_fix_header = temp_fix_header.replace(replace_char,'')
-                                        fixed_headers.append('renamed_header_'+str(fixed_header_counter)+'_'+temp_fix_header)
-                                        fixed_header_counter += 1
-                                        
-                        if(found_error):
-                                self.caught_errors.append(1)
-                                for error_message in self.error_codes[1]:
-                                        temp = error_message
-                                        if('REPLACE_WITH_replace_char' in temp):
-                                                for replace_char in invalid_chars:
-                                                        temp += error_message.replace('REPLACE_WITH_replace_char',replace_char) + '\n'
-                                        temp = temp.replace('REPLACE_WITH_header',header)
-                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                        compatibility_print(temp)
-			#chars_that_nt_cannot_start_with = ['0','1','2','3','4','5','6','7','8','9','_']
-                        self.headers = fixed_headers
-		else:
-                        fixed_headers = None
-                        max_corresponding_key = ''
-                        most_successful_percentage = float(0.0)
-                        self.caught_errors.append(7)
-                        for error_message in self.error_codes[7]:
-                                temp = error_message
-                                temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
-                                compatibility_print(temp)
-
-                # Check to make sure headers contain only alpha numeric characters
-                
-                return fixed_headers,max_corresponding_key,most_successful_percentage
+        

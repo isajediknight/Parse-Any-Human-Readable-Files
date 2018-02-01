@@ -42,12 +42,13 @@ class histogram:
         error_codes[1].append("Character: 'REPLACE_WITH_replace_char' in 'REPLACE_WITH_header' is not a valid character for a header.")
         error_codes[1].append("Please change the header column in REPLACE_WITH_self.path to start with a letter of the alphabet.")
         error_codes[1].append("Column has been renamed in order for program to continue.\n")
-        error_codes[2] = []
-        error_codes[2].append("[ Caught Exception ]")
-        error_codes[2].append("Error Code: 2 < Invalid OS and Path Combination >\n")
-        error_codes[2].append("Detected OS: REPLACE_WITH_self.os_type")
-        error_codes[2].append("Detected Path Type: REPLACE_WITH_self.path_type\n")
-        error_codes[2].append("> This is a Fatal Error.  Program Exiting. <\n")
+        # Need to come back and reake this error code
+        #error_codes[2] = []
+        #error_codes[2].append("[ Caught Exception ]")
+        #error_codes[2].append("Error Code: 2 < Invalid OS and Path Combination >\n")
+        #error_codes[2].append("Detected OS: REPLACE_WITH_self.os_type")
+        #error_codes[2].append("Detected Path Type: REPLACE_WITH_self.path_type\n")
+        #error_codes[2].append("> This is a Fatal Error.  Program Exiting. <\n")
         error_codes[3] = []
         error_codes[3].append("[ Caught Exception ]")
         error_codes[3].append("Error Code: 3 < Beginning Or Ending Spaces Found In Path + Filename >\n")
@@ -72,7 +73,7 @@ class histogram:
         error_codes[7] = []
         error_codes[7].append("[ Caught Exception ]")
         error_codes[7].append("Error Code: 7 < Path + Filename Does Not Exist >")
-        error_codes[7].append("REPLACE_WITH_self.pathREPLACE_WITH_self.filename\n")
+        error_codes[7].append("REPLACE_WITH_my_pathREPLACE_WITH_my_filename\n")
         error_codes[8] = []
         error_codes[8].append("[ Caught Exception ]")
         error_codes[8].append("Error Code: 8 < Attempting to get Headers of a file from a Directory >")
@@ -106,120 +107,33 @@ class histogram:
                                 temp = temp.replace('REPLACE_WITH_path',path)
                                 temp = temp.replace('REPLACE_WITH_temp_path',temp_path)
                                 compatibility_print(temp)
+                        path = temp_path
                 else:
-                        temp_path = path
-
-                # Find all the up-one-directories
-                double_dot_locs = list(find_all_return_generator(temp_path,'..'))
+                        #temp_path = path
+                        pass
 
                 # For dealing with python version compatibility
 		self.python_version = python_version()
 		
                 if(sys.platform.lower().startswith('linux')):
 			self.os_type = 'linux'
-			temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
-                        self.filename = temp_path[temp_path_slash_locs[-1]+1:]
-
-                        # If we are given a relative path make it an absolute path
-                        if(len(double_dot_locs) > 0):
-                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'/'))
-                                self.path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
-                        else:
-                                self.path = temp_path
-
-                        # I am lazy - really lazy ...
-                        # If the filename is at the end - remove it
-                        self.path = self.path.replace(self.filename, '')
-
-                        # Detect what we were given
-                        if(os.path.isdir(self.path + self.filename)):
-                                self.path_type = 'directory'
-                                self.filename = None
-                                # We're good.  We want the just the path - and not the filename here
-                        elif(os.path.isfile(self.path + self.filename)):
-                                self.path_type = 'file'
-                                path_slash_locs = list(find_all_return_generator(self.path,'/'))
-                                self.path = self.path[:path_slash_locs[-1]] + '/'
-                        else:
-                                self.path_type = 'invalid'
-                                self.caught_errors.append(7)
-                                for error_message in self.error_codes[7]:
-                                        temp = error_message
-                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                        temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
-                                        compatibility_print(temp)
-                                
-		elif(sys.platform.lower().startswith('win')):
-			self.os_type = 'windows'
-			
-			temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
-                        self.filename = temp_path[temp_path_slash_locs[-1]+1:]
-
-                        # If we are given a relative path make it an absolute path
-                        if(len(double_dot_locs) > 0):
-                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'\\'))
-                                self.path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '\\'
-                        else:
-                                self.path = temp_path
-
-                        # I am lazy - really lazy ...
-                        self.path = self.path.replace(self.filename, '')
-
-                        if(os.path.isdir(self.path + self.filename)):
-                                self.path_type = 'directory'
-                                self.filename = None
-                                # We're good.  We want the just the path - and not the filename here
-                        elif(os.path.isfile(self.path + self.filename)):
-                                self.path_type = 'file'
-                                path_slash_locs = list(find_all_return_generator(self.path,'\\'))
-                                self.path = self.path[:path_slash_locs[-1]] + '\\'
-                        else:
-                                # We shouldn't ever run into this.  Everything should be a file or a directory.
-                                self.path_type = 'invalid'
-                                self.caught_errors.append(7)
-                                for error_message in self.error_codes[7]:
-                                        temp = error_message
-                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                        temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
-                                        compatibility_print(temp)
-                                
 		elif(sys.platform.lower().startswith('mac')):
 			self.os_type = 'macintosh'
-			temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
-                        self.filename = temp_path[temp_path_slash_locs[-1]+1:]
-
-                        # If we are given a relative path make it an absolute path
-                        if(len(double_dot_locs) > 0):
-                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'/'))
-                                self.path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
-                        else:
-                                self.path = temp_path
-
-                        # I am lazy - really lazy ...
-                        # This will remove the filename from the end of the path if it's there
-                        self.path = self.path.replace(self.filename, '')
-
-                        if(os.path.isdir(self.path + self.filename)):
-                                self.path_type = 'directory'
-                                self.filename = None
-                                # We're good.  We want the just the path - and not the filename here
-                        elif(os.path.isfile(self.path + self.filename)):
-                                self.path_type = 'file'
-                                path_slash_locs = list(find_all_return_generator(self.path,'/'))
-                                self.path = self.path[:path_slash_locs[-1]] + '/'
-                        else:
-                                self.path_type = 'invalid'
-                                self.caught_errors.append(7)
-                                for error_message in self.error_codes[7]:
-                                        temp = error_message
-                                        temp = temp.replace('REPLACE_WITH_self.path',self.path)
-                                        temp = temp.replace('REPLACE_WITH_self.filename',self.filename)
-                                        compatibility_print(temp)
+		elif(sys.platform.lower().startswith('win')):
+			self.os_type = 'windows'
 		else:
-			self.os_type = 'invalid'
-			self.caught_errors.append(6)
+                        self.os_type = 'invalid'
+                        self.caught_errors.append(6)
                         for error_message in self.error_codes[6]:
                                 compatibility_print(error_message)
+
+                # Get list of all files and directories from a path
+                # Includes subdirectories recursively
+                self.dirs_files_to_loop_through = []
+
+                my_path, my_filename = self.convert_relative_path_to_absolute(path)
+                
+                self.add_references_to_read(my_path + ('' if my_filename == None else my_filename))
 
 		if(3 in self.caught_errors):
                         compatibility_print("Corrected Path Without Spaces: >"+"<\n")
@@ -241,12 +155,6 @@ class histogram:
 		##else:
 		##	self.path_type = 'unknown'
 
-                # Get list of all files and directories from a path
-                # Includes subdirectories recursively
-                self.dirs_files_to_loop_through = []
-
-                self.build_all_directory_file_list(self.path + ('' if self.filename == None else self.filename))
-
                 # Master variable which will contain all the metadata about the directory or filename passed in
 		self.file_list = {}
 
@@ -262,179 +170,20 @@ class histogram:
 		# Save delimiter and Header attempts
 		self.delimiter_header_attempts = {}
 
-                #for each_object in self.dirs_files_to_loop_through:
-                #        # Get basic data about the file / directory
-                #        self.get_file_list(each_object)
-                self.get_all_file_info()
+                # We should make this be manually called so dirs_files_to_loop_through can be built
+                #self.get_all_file_info()
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
 		compatibility_print("Initialized in: "+str(run_time)+" seconds.")
 
-        # DAMNIT!!!!!!!!!!!!!!!
-	def get_file_list(self,next_object):
-                # Benchmark all the things!
-		time_begin = datetime.datetime.now()
-
-                if(next_filename == None or next_filename == ''):
-                       next_path = self.path
-                       next_filename = '' if self.filename == None else self.filename
-
-                if(os.path.isdir(next_path + next_filename)):
-                        which_type = 'directory'
-                elif(os.path.isfile(next_path + next_filename)):
-                        which_type = 'file'
-                else:
-                        which_type = 'error'
-
-		# Data points we want to capture
-		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter')
-		
-		if(which_type == 'file'):
-
-                        # Need to add logic for filenames with no dot
-                        dot_loc = list(find_all_return_generator(next_filename,'.'))[-1]
-
-                        if(self.os_type == 'linux' or self.os_type == 'macintosh'):
-                                slash_loc = list(find_all_return_generator(next_filename,'/'))[-1]
-                                if(dot_loc > slash_loc):
-                                        file_type = next_filename[dot_loc+1:]
-                                else:
-                                        file_type = next_filename[slash_loc+1:]
-                        elif(self.os_type == 'windows'):
-                                try:
-                                        slash_loc = list(find_all_return_generator(next_filename,'\\'))[-1]
-                                except:
-                                        slash_loc = -1
-                                
-                                if(dot_loc > slash_loc):
-                                        file_type = next_filename[dot_loc+1:]
-                                else:
-                                        file_type = next_filename[slash_loc+1:]
-                        else:
-                                file_type = None
-                                # Raise Error COME BACK AND WRITE ERROR MESSAGE
-
-                        # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
-                        if((next_path + next_filename) not in self.delimiter_header_attempts):
-                                self.get_header_and_delimiter(next_path + next_filename)
-
-                        most_success_delimiter = ''
-                        most_success_percentage = float(0.0)
-                        most_success_header = ''
-
-                        for attempt in range(len(self.delimiter_header_attempts[next_path + next_filename])):
-                                if(self.delimiter_header_attempts[next_path + next_filename][attempt].success_percentage > most_success_percentage):
-                                        most_success_delimiter = self.delimiter_header_attempts[next_path + next_filename][attempt].delimiter
-                                        most_success_percentage = self.delimiter_header_attempts[next_path + next_filename][attempt].success_percentage
-                                        most_success_header = self.delimiter_header_attempts[next_path + next_filename][attempt].headers
-			
-			file_info = os.stat(os.path.join(next_path,next_filename))
-			self.file_list[next_path+next_filename] = nt(next_filename,
-                                                       datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
-                                                       datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
-                                                       datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-                                                       next_path,
-                                                       file_info.st_size,
-                                                       'Directory' if os.path.isdir(next_path+next_filename) else 'File',
-						       most_success_header,
-                                                       file_type,
-                                                       most_success_delimiter)
-		elif(which_type == 'directory'):
-			for filename in os.listdir(next_path):
-				file_info = os.stat(os.path.join(next_path,filename))
-
-                                if(os.path.isdir(next_path + filename) == False):
-                                        dot_loc = list(find_all_return_generator(filename,'.'))[-1]
-
-                                        if(self.os_type == 'linux' or self.os_type == 'macintosh'):
-                                                slash_loc = list(find_all_return_generator(filename,'/'))[-1]
-                                                if(dot_loc > slash_loc):
-                                                        file_type = filename[dot_loc+1:]
-                                                else:
-                                                        file_type = filename[slash_loc+1:]
-                                        elif(self.os_type == 'windows'):
-                                                try:
-                                                        slash_loc = list(find_all_return_generator(filename,'\\'))[-1]
-                                                except:
-                                                        slash_loc = -1
-                                
-                                                if(dot_loc > slash_loc):
-                                                        file_type = filename[dot_loc+1:]
-                                                else:
-                                                        file_type = filename[slash_loc+1:]
-                                        else:
-                                                file_type = None
-                                                # Raise Error COME BACK AND WRITE ERROR MESSAGE
-
-                                        # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
-                                        if((self.path + filename) not in self.delimiter_header_attempts):
-                                                self.get_header_and_delimiter(next_path + filename)
-
-                                        most_success_delimiter = ''
-                                        most_success_percentage = float(0.0)
-                                        most_success_header = ''
-
-                                        try:
-                                                for attempt in range(len(self.delimiter_header_attempts[next_path + filename])):
-                                                        if(self.delimiter_header_attempts[self.path + filename][attempt].success_percentage > most_success_percentage):
-                                                                most_success_delimiter = self.delimiter_header_attempts[next_path + filename][attempt].delimiter
-                                                                most_success_percentage = self.delimiter_header_attempts[next_path + filename][attempt].success_percentage
-                                                                most_success_header = self.delimiter_header_attempts[next_path + filename][attempt].headers
-          
-                                                self.file_list[next_path + filename] = nt(filename,
-                                                                                          datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
-                                                                                          datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
-                                                                                          datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-                                                                                          next_path,
-                                                                                          file_info.st_size,
-                                                                                          'Directory' if os.path.isdir(next_path + filename) else 'File',
-                                                                                          most_success_header,
-                                                                                          file_type,
-                                                                                          most_success_delimiter)
-                                
-
-                                        except KeyError:
-                                                compatibility_print("Create new Error here.  self.path + filename has no non alphanumeric headers")
-                                
-                                # We're dealing with a directory
-                                else:
-                                        
-                                        self.file_list[next_path + filename] = nt(filename,
-                                                                                  datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
-                                                                                  datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
-                                                                                  datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
-                                                                                  next_path,
-                                                                                  file_info.st_size,
-                                                                                  'Directory' if os.path.isdir(next_path + filename) else 'File',
-                                                                                  None,
-                                                                                  None,
-                                                                                  None)
-                                        
-                                        
-                                        
-                                        
-
-                                        
-				
-		else:
-			self.caught_errors.append(7)
-                        for error_message in self.error_codes[7]:
-                                temp = error_message
-                                temp = temp.replace('REPLACE_WITH_self.path',next_path)
-                                temp = temp.replace('REPLACE_WITH_self.filename',next_filename)
-                                compatibility_print(temp)
-
-		time_end = datetime.datetime.now()
-		run_time = (time_end - time_begin).seconds
-		compatibility_print("Path parsed in: "+str(run_time)+" seconds.")
-
         def get_all_file_info(self):
                 """
                 Version 2 of this.  Decided to do the recursive search prior to reading in all the info.
                 """
+                # Run this if we have no files or directories yet
                 if(len(self.dirs_files_to_loop_through) == 0):
-                        build_all_directory_file_list(self.path)
+                        add_references_to_read(self.path)
 
                 # Data points we want to capture
 		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter success_percentage')
@@ -499,22 +248,38 @@ class histogram:
                                                          None if os.path.isdir(dir_or_file) else most_success_percentage)
                         
 
-        def build_all_directory_file_list(self,next_check):
-                for filename in os.listdir(next_check):
+        def add_references_to_read(self,next_check):
+                # If we pass in a single file
+
+                my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
+                next_check = my_path + my_filename
+                
+                if os.path.isfile(next_check):
                         fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
-                        absolute_path = next_check + fail + filename
+                        absolute_path = next_check
                         if(self.os_type == 'linux' or self.os_type == 'macintosh'):
                                 absolute_path = absolute_path.replace('//','/')
                         elif(self.os_type == 'windows'):
                                 absolute_path = absolute_path.replace('\\\\','\\')
-                                
-                        if(os.path.isdir(absolute_path) and (absolute_path) not in self.dirs_files_to_loop_through):
-                        #if(os.path.isdir(next_check + filename) and (next_check + filename) not in self.dirs_files_to_loop_through):
-                                self.build_all_directory_file_list(absolute_path)
-                                #self.build_all_directory_file_list(next_check  + filename)
                         self.dirs_files_to_loop_through.append(absolute_path)
-                        #print(absolute_path)
-                        #self.dirs_files_to_loop_through.append(next_check + filename)
+                        
+                # If we pass in a directory
+                else:
+                        for filename in os.listdir(next_check):
+                                fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
+                                absolute_path = next_check + fail + filename
+                                if(self.os_type == 'linux' or self.os_type == 'macintosh'):
+                                        absolute_path = absolute_path.replace('//','/')
+                                elif(self.os_type == 'windows'):
+                                        absolute_path = absolute_path.replace('\\\\','\\')
+                                
+                                if(os.path.isdir(absolute_path) and (absolute_path) not in self.dirs_files_to_loop_through):
+                                #if(os.path.isdir(next_check + filename) and (next_check + filename) not in self.dirs_files_to_loop_through):
+                                        self.add_references_to_read(absolute_path)
+                                        #self.add_references_to_read(next_check  + filename)
+                                self.dirs_files_to_loop_through.append(absolute_path)
+                                #print(absolute_path)
+                                #self.dirs_files_to_loop_through.append(next_check + filename)
 
         def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000):
                 """
@@ -795,40 +560,123 @@ class histogram:
                                 self.delimiter_header_attempts[absolute_path_to_file] = []
                                 self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_file(absolute_path_to_file,fixed_headers,delimiter))
 
-	# Does a Primary Key Exist?
-	def get_primary_key(self,lines_to_check=9999):
+        def convert_relative_path_to_absolute(self,path):
+                """
+                Return the Path and Filename
+                """
 
-                # We can't get the Primary Keys unless we know what we need to get the Primary Keys of
-		if(len(self.file_list.keys()) == 0):
-			self.get_file_list()
+                # Initialize for return values
+                my_filename = ''
+                my_path = ''
+
+                # Find all the up-one-directories
+                double_dot_locs = list(find_all_return_generator(path,'..'))
+                
+                if(self.os_type == 'linux'):
+                        temp_path = path.replace('//','/')
+			temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
+                        my_filename = temp_path[temp_path_slash_locs[-1]+1:]
+
+                        # If we are given a relative path make it an absolute path
+                        if(len(double_dot_locs) > 0):
+                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'/'))
+                                my_path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
+                        else:
+                                my_path = temp_path
+
+                        # I am lazy - really lazy ...
+                        # If the filename is at the end - remove it
+                        my_path = my_path.replace(my_filename, '')
+
+                        # Detect what we were given
+                        if(os.path.isdir(my_path + my_filename)):
+                                my_path_type = 'directory'
+                                my_filename = None
+                                # We're good.  We want the just the path - and not the filename here
+                        elif(os.path.isfile(my_path + my_filename)):
+                                my_path_type = 'file'
+                                path_slash_locs = list(find_all_return_generator(my_path,'/'))
+                                my_path = my_path[:path_slash_locs[-1]] + '/'
+                        else:
+                                my_path_type = 'invalid'
+                                self.caught_errors.append(7)
+                                for error_message in self.error_codes[7]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                        temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                        compatibility_print(temp)
+                                
+		elif(self.os_type == 'windows'):
+			temp_path = path.replace('\\\\','\\')
+			temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                        my_filename = temp_path[temp_path_slash_locs[-1]+1:]
+
+                        # If we are given a relative path make it an absolute path
+                        if(len(double_dot_locs) > 0):
+                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'\\'))
+                                my_path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '\\'
+                        else:
+                                my_path = temp_path
+
+                        # I am lazy - really lazy ...
+                        my_path = my_path.replace(my_filename, '')
+
+                        if(os.path.isdir(my_path + my_filename)):
+                                my_path_type = 'directory'
+                                my_filename = None
+                                # We're good.  We want the just the path - and not the filename here
+                        elif(os.path.isfile(my_path + my_filename)):
+                                my_path_type = 'file'
+                                path_slash_locs = list(find_all_return_generator(my_path,'\\'))
+                                my_path = my_path[:path_slash_locs[-1]] + '\\'
+                        else:
+                                # We shouldn't ever run into this.  Everything should be a file or a directory.
+                                my_path_type = 'invalid'
+                                self.caught_errors.append(7)
+                                for error_message in self.error_codes[7]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                        temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                        compatibility_print(temp)
+                                
+		elif(self.os_type == 'macintosh'):
+			
+			temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
+                        my_filename = temp_path[temp_path_slash_locs[-1]+1:]
+
+                        # If we are given a relative path make it an absolute path
+                        if(len(double_dot_locs) > 0):
+                                getcwd_slash_locs = list(find_all_return_generator(getcwd(),'/'))
+                                my_path = getcwd()[:getcwd_slash_locs[-len(double_dot_locs)]] + temp_path[double_dot_locs[-1]+2:temp_path_slash_locs[-1]] + '/'
+                        else:
+                                my_path = temp_path
+
+                        # I am lazy - really lazy ...
+                        # This will remove the filename from the end of the path if it's there
+                        my_path = my_path.replace(my_filename, '')
+
+                        if(os.path.isdir(my_path + my_filename)):
+                                my_path_type = 'directory'
+                                my_filename = None
+                                # We're good.  We want the just the path - and not the filename here
+                        elif(os.path.isfile(my_path + my_filename)):
+                                my_path_type = 'file'
+                                path_slash_locs = list(find_all_return_generator(my_path,'/'))
+                                my_path = my_path[:path_slash_locs[-1]] + '/'
+                        else:
+                                my_path_type = 'invalid'
+                                self.caught_errors.append(7)
+                                for error_message in self.error_codes[7]:
+                                        temp = error_message
+                                        temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                        temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                        compatibility_print(temp)
 		else:
-			nt = namedtuple('identify_primary_key',self.headers)
-			ans = []
-			readfile = open(key,'r')
-			counter = -1
-                        for line in readfile:
-				counter += 1
-                                my_line = line.strip()
-				if(counter > lines_to_check):
-                                	break
-				ans.append(nt(my_line.split(self.delimiter)))
-                        readfile.close()
+			self.caught_errors.append(6)
+                        for error_message in self.error_codes[6]:
+                                compatibility_print(error_message)
 
-                        # I forget why, but it's a good idea to delete file I/O when you are done with them
-                        del readfile
-			return ans
-
-	# Returns number of rows or files
-	def get_number_of_objects(self):
-		if(self.is_file):
-			pass
-			# open file and count rows
-		elif(self.is_dir):
-			pass
-			# iterate through files and count them
-		else:
-			pass
-			# Raise Error
+                return my_path, my_filename
 
 	def help(self,which=None):
 		compatibility_print("\n[ Help Options for Histogram Class ]",'\n\n')

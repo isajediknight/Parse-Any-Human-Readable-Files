@@ -62,7 +62,13 @@ elif(my_platform == 'win'):
     #b = f.attempt_to_read_file(f.path + f.filename,',',' '.join(f.get_headers(f.path + f.filename,',')))
     #c = f.attempt_to_read_file(f.path + f.filename,'|',' '.join(f.get_headers(f.path + f.filename,'|')))
 
-    g = histogram('..\\input_files\\')
+    #g = histogram('..\\input_files\\')
     #g.read_all_files()
+    h = histogram('..\\input_files\\commits_since_last_release_by_commit.input')
+    h.add_references_to_read('..\\input_files\\file_2.txt')
+    h.add_references_to_read('..\\input_files\\file_3.txt')
+    h.add_references_to_read('C:\\Users\\LB023593\\Documents\\Stories\\Cerner_Github\\Read-Anything-Write-Anything\\input_files\\file_1.txt')
+    h.get_all_file_info()
+    h.read_all_files()
 else:
     print("Unknown OS")

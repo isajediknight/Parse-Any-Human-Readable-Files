@@ -132,8 +132,10 @@ class histogram:
                 self.dirs_files_to_loop_through = []
 
                 my_path, my_filename = self.convert_relative_path_to_absolute(path)
-                
+
                 self.add_references_to_read(my_path + ('' if my_filename == None else my_filename))
+
+                self.path = my_path + ('' if my_filename == None else my_filename)
 
 		if(3 in self.caught_errors):
                         compatibility_print("Corrected Path Without Spaces: >"+"<\n")
@@ -183,7 +185,7 @@ class histogram:
                 """
                 # Run this if we have no files or directories yet
                 if(len(self.dirs_files_to_loop_through) == 0):
-                        add_references_to_read(self.path)
+                        self.add_references_to_read(self.path)
 
                 # Data points we want to capture
 		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter success_percentage')
@@ -250,9 +252,6 @@ class histogram:
 
         def add_references_to_read(self,next_check):
                 # If we pass in a single file
-
-                my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
-                next_check = my_path + my_filename
                 
                 if os.path.isfile(next_check):
                         fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
@@ -264,7 +263,7 @@ class histogram:
                         self.dirs_files_to_loop_through.append(absolute_path)
                         
                 # If we pass in a directory
-                else:
+                elif os.path.isdir(next_check):
                         for filename in os.listdir(next_check):
                                 fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
                                 absolute_path = next_check + fail + filename
@@ -280,6 +279,15 @@ class histogram:
                                 self.dirs_files_to_loop_through.append(absolute_path)
                                 #print(absolute_path)
                                 #self.dirs_files_to_loop_through.append(next_check + filename)
+                else:
+                        my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
+                        next_check = my_path + '' if(my_filename == None) else my_filename
+                        self.caught_errors.append(7)
+                        for error_message in self.error_codes[7]:
+                                temp = error_message
+                                temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                compatibility_print(temp)
 
         def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000):
                 """
@@ -346,6 +354,10 @@ class histogram:
                 """
                 Reads in the data from the file.
                 """
+
+                # Make absolute_path_to_file an absolute path to the file if it's not ...
+                my_path, my_filename = self.convert_relative_path_to_absolute(absolute_path_to_file)
+                absolute_path_to_file = my_path + my_filename
 
                 # namedtuple for headers
                 nt_read = namedtuple('file_data',header)
@@ -562,10 +574,13 @@ class histogram:
 
         def convert_relative_path_to_absolute(self,path):
                 """
-                Return the Path and Filename
+                Return the Path and Filename from {path}
+
+                Assumptions
+                1)  Filenames with two dots '..' are not supported except to represent going up a directory
                 """
 
-                # Initialize for return values
+                # Initialize for return values - mainly needed if self.os_type is 'invalid'
                 my_filename = ''
                 my_path = ''
 
@@ -607,7 +622,11 @@ class histogram:
                                         compatibility_print(temp)
                                 
 		elif(self.os_type == 'windows'):
-			temp_path = path.replace('\\\\','\\')
+                        # If the file in on a Network Share add back the second set of double slashes
+                        if(path[0:2] == '\\\\'):
+                                temp_path = '\\' + path.replace('\\\\','\\')
+                        else:
+                                temp_path = path.replace('\\\\','\\')
 			temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
                         my_filename = temp_path[temp_path_slash_locs[-1]+1:]
 

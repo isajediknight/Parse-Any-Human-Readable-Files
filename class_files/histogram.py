@@ -97,6 +97,7 @@ class histogram:
 
                 # List of errors caught
                 self.caught_errors = []
+                self.caught_errors_files_or_dirs = []
 
                 # Fix Path if needed
                 if(len(path.strip()) != len(path)):
@@ -145,18 +146,6 @@ class histogram:
                 elif(self.os_type == 'windows'):
                         pass
 
-                # I think I don't want to tackle this
-                # Preferreded route would be to call this class for each new directory instead of passing a list of directories
-                ## Need to be able to hangle multiple datatypes being sent in
-		##if(type('') == type(self.path)):
-                ##        self.path_type = 'string'
-		##elif(type([]) == type(self.path)):
-		##	self.path_type = 'list'
-		##elif(type({}) == type(self.path)):
-		##	self.path_type = 'dict'
-		##else:
-		##	self.path_type = 'unknown'
-
                 # Master variable which will contain all the metadata about the directory or filename passed in
 		self.file_list = {}
 
@@ -177,7 +166,7 @@ class histogram:
 
 		time_end = datetime.datetime.now()
 		run_time = (time_end - time_begin).seconds
-		compatibility_print("Initialized in: "+str(run_time)+" seconds.")
+		#compatibility_print("Initialized in: "+str(run_time)+" seconds.")
 
         def get_all_file_info(self):
                 """
@@ -260,7 +249,9 @@ class histogram:
                                 absolute_path = absolute_path.replace('//','/')
                         elif(self.os_type == 'windows'):
                                 absolute_path = absolute_path.replace('\\\\','\\')
-                        self.dirs_files_to_loop_through.append(absolute_path)
+                        
+                        if(absolute_path not in self.dirs_files_to_loop_through):
+                                self.dirs_files_to_loop_through.append(absolute_path)
                         
                 # If we pass in a directory
                 elif os.path.isdir(next_check):
@@ -276,18 +267,21 @@ class histogram:
                                 #if(os.path.isdir(next_check + filename) and (next_check + filename) not in self.dirs_files_to_loop_through):
                                         self.add_references_to_read(absolute_path)
                                         #self.add_references_to_read(next_check  + filename)
-                                self.dirs_files_to_loop_through.append(absolute_path)
+                                if(absolute_path not in self.dirs_files_to_loop_through):
+                                        self.dirs_files_to_loop_through.append(absolute_path)
                                 #print(absolute_path)
                                 #self.dirs_files_to_loop_through.append(next_check + filename)
                 else:
                         my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
                         next_check = my_path + '' if(my_filename == None) else my_filename
-                        self.caught_errors.append(7)
-                        for error_message in self.error_codes[7]:
-                                temp = error_message
-                                temp = temp.replace('REPLACE_WITH_my_path',my_path)
-                                temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
-                                compatibility_print(temp)
+                        if ((7 not in self.caught_errors) and (next_check not in self.caught_errors_files_or_dirs)):
+                                        self.caught_errors.append(7)
+                                        self.caught_errors_files_or_dirs.append(next_check)
+                                        for error_message in self.error_codes[7]:
+                                                temp = error_message
+                                                temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                                temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                                compatibility_print(temp)
 
         def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000):
                 """
@@ -421,11 +415,19 @@ class histogram:
                                         value_counter = 0
                                         for values in [x.strip() for x in line.split(delimiter)]:
                                                 if(values in histogram_ans[value_counter]):
+                                                        #if(value_counter == 0):
+                                                        #        compatibility_print('Increment: ' + values + ' ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
                                                         histogram_ans[value_counter - 1]['duplicate_count'] = histogram_ans[value_counter - 1]['duplicate_count'] + 1
                                                         histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
                                                 else:
-                                                        histogram_ans[value_counter][values] = 1
-                                                        histogram_ans[value_counter - 1]['duplicate_count'] = 0
+                                                        #if(value_counter == 0):
+                                                        #        compatibility_print('Initialize: ' + values)
+                                                        if(values not in histogram_ans[value_counter].keys()):
+                                                                histogram_ans[value_counter][values] = 1
+                                                        if('duplicate_count' not in histogram_ans[value_counter - 1].keys()):
+                                                                histogram_ans[value_counter - 1]['duplicate_count'] = 0
+                                                #if(value_counter == 0):
+                                                #        compatibility_print('Duplicate Count ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
                                                 value_counter += 2
                                         #except:
                                         #        #pass
@@ -471,9 +473,15 @@ class histogram:
                 """
                 Reads in the data from all the files in the directory
                 """
+                time_begin = datetime.datetime.now()
+		
                 for file_key in self.file_list.keys():
                         if(self.file_list[file_key].type == 'File'):
                                 self.read_file(self.file_list[file_key].directory + self.file_list[file_key].filename,self.file_list[file_key].delimiter,self.file_list[file_key].header)
+
+                time_end = datetime.datetime.now()
+		run_time = (time_end - time_begin).seconds
+                compatibility_print("All files read in: "+str(run_time)+" seconds.")
 
         def get_header_and_delimiter(self,absolute_path_to_file,delimiter=None):
                 """
@@ -614,12 +622,14 @@ class histogram:
                                 my_path = my_path[:path_slash_locs[-1]] + '/'
                         else:
                                 my_path_type = 'invalid'
-                                self.caught_errors.append(7)
-                                for error_message in self.error_codes[7]:
-                                        temp = error_message
-                                        temp = temp.replace('REPLACE_WITH_my_path',my_path)
-                                        temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
-                                        compatibility_print(temp)
+                                if ((7 not in self.caught_errors) and ((my_path + my_filename) not in self.caught_errors_files_or_dirs)):
+                                        self.caught_errors.append(7)
+                                        self.caught_errors_files_or_dirs.append(my_path + my_filename)
+                                        for error_message in self.error_codes[7]:
+                                                temp = error_message
+                                                temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                                temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                                compatibility_print(temp)
                                 
 		elif(self.os_type == 'windows'):
                         # If the file in on a Network Share add back the second set of double slashes
@@ -638,6 +648,7 @@ class histogram:
                                 my_path = temp_path
 
                         # I am lazy - really lazy ...
+                        # This will remove the filename from the end of the path if it's there
                         my_path = my_path.replace(my_filename, '')
 
                         if(os.path.isdir(my_path + my_filename)):
@@ -649,14 +660,16 @@ class histogram:
                                 path_slash_locs = list(find_all_return_generator(my_path,'\\'))
                                 my_path = my_path[:path_slash_locs[-1]] + '\\'
                         else:
-                                # We shouldn't ever run into this.  Everything should be a file or a directory.
+                                # Scenario to handle a directory or path which does not exist
                                 my_path_type = 'invalid'
-                                self.caught_errors.append(7)
-                                for error_message in self.error_codes[7]:
-                                        temp = error_message
-                                        temp = temp.replace('REPLACE_WITH_my_path',my_path)
-                                        temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
-                                        compatibility_print(temp)
+                                if((7 not in self.caught_errors) and (my_path + my_filename not in self.caught_errors_files_or_dirs)):
+                                        self.caught_errors.append(7)
+                                        self.caught_errors_files_or_dirs.append(my_path + my_filename)
+                                        for error_message in self.error_codes[7]:
+                                                temp = error_message
+                                                temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                                temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                                compatibility_print(temp)
                                 
 		elif(self.os_type == 'macintosh'):
 			
@@ -684,12 +697,14 @@ class histogram:
                                 my_path = my_path[:path_slash_locs[-1]] + '/'
                         else:
                                 my_path_type = 'invalid'
-                                self.caught_errors.append(7)
-                                for error_message in self.error_codes[7]:
-                                        temp = error_message
-                                        temp = temp.replace('REPLACE_WITH_my_path',my_path)
-                                        temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
-                                        compatibility_print(temp)
+                                if ((7 not in self.caught_errors) and (next_check not in self.caught_errors_files_or_dirs)):
+                                        self.caught_errors.append(7)
+                                        self.caught_errors_files_or_dirs.append(next_check)
+                                        for error_message in self.error_codes[7]:
+                                                temp = error_message
+                                                temp = temp.replace('REPLACE_WITH_my_path',my_path)
+                                                temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
+                                                compatibility_print(temp)
 		else:
 			self.caught_errors.append(6)
                         for error_message in self.error_codes[6]:

@@ -6,7 +6,7 @@ from helper_methods import compatibility_print
 from helper_methods import find_all_return_generator
 
 class histogram:
-	"""
+        """
 	Goal is to create a class which will read in:
 		1)  Data about a bunch of files in a directory or
 		2)  Data in a single file.
@@ -31,9 +31,7 @@ class histogram:
 		2)  If a directory is sent in it will not read in any files but will return a dictionary of all files
 		    that directory and all subsequent directories.
 	"""
-
         # Variables here are common AND shared between all instances of this class
-
         # Dictionary of Error Codes
         error_codes = {}
         error_codes[1] = []
@@ -91,9 +89,9 @@ class histogram:
                             'import','pass','break','except','in','raise']
         invalid_nt_field_chars = ['-']
 
-	def __init__(self,path):
+        def __init__(self,path):
 		# Benchmark all the things!
-		time_begin = datetime.datetime.now()
+                time_begin = datetime.datetime.now()
 
                 # List of errors caught
                 self.caught_errors = []
@@ -114,15 +112,15 @@ class histogram:
                         pass
 
                 # For dealing with python version compatibility
-		self.python_version = python_version()
+                self.python_version = python_version()
 		
                 if(sys.platform.lower().startswith('linux')):
-			self.os_type = 'linux'
-		elif(sys.platform.lower().startswith('mac')):
-			self.os_type = 'macintosh'
-		elif(sys.platform.lower().startswith('win')):
-			self.os_type = 'windows'
-		else:
+                        self.os_type = 'linux'
+                elif(sys.platform.lower().startswith('mac')):
+                        self.os_type = 'macintosh'
+                elif(sys.platform.lower().startswith('win')):
+                        self.os_type = 'windows'
+                else:
                         self.os_type = 'invalid'
                         self.caught_errors.append(6)
                         for error_message in self.error_codes[6]:
@@ -132,13 +130,14 @@ class histogram:
                 # Includes subdirectories recursively
                 self.dirs_files_to_loop_through = []
 
-                my_path, my_filename = self.convert_relative_path_to_absolute(path)
+                ###-->my_path, my_filename = self.convert_relative_path_to_absolute(path)
 
-                self.add_references_to_read(my_path + ('' if my_filename == None else my_filename))
+                ###-->self.add_references_to_read(my_path + ('' if my_filename == None else my_filename))
+                self.add_references_to_read(path)
 
-                self.path = my_path + ('' if my_filename == None else my_filename)
+                ###-->self.path = my_path + ('' if my_filename == None else my_filename)
 
-		if(3 in self.caught_errors):
+                if(3 in self.caught_errors):
                         compatibility_print("Corrected Path Without Spaces: >"+"<\n")
 
                 if(self.os_type == 'linux' or self.os_type == 'macintosh'):
@@ -147,7 +146,7 @@ class histogram:
                         pass
 
                 # Master variable which will contain all the metadata about the directory or filename passed in
-		self.file_list = {}
+                self.file_list = {}
 
                 # This will contain the data of the file if so desired
                 self.file_data = {}
@@ -159,13 +158,13 @@ class histogram:
                 self.file_histogram = {}
 
 		# Save delimiter and Header attempts
-		self.delimiter_header_attempts = {}
+                self.delimiter_header_attempts = {}
 
                 # We should make this be manually called so dirs_files_to_loop_through can be built
                 #self.get_all_file_info()
 
-		time_end = datetime.datetime.now()
-		run_time = (time_end - time_begin).seconds
+                time_end = datetime.datetime.now()
+                run_time = (time_end - time_begin).seconds
 		#compatibility_print("Initialized in: "+str(run_time)+" seconds.")
 
         def get_all_file_info(self):
@@ -177,7 +176,7 @@ class histogram:
                         self.add_references_to_read(self.path)
 
                 # Data points we want to capture
-		nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter success_percentage')
+                nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter success_percentage')
 
                 for dir_or_file in self.dirs_files_to_loop_through:
 
@@ -216,17 +215,27 @@ class histogram:
                         most_success_delimiter = ''
                         most_success_percentage = float(0.0)
                         most_success_header = ''
-                        
-                        for attempt in range(len(self.delimiter_header_attempts[dir_or_file])):
-                                if(self.delimiter_header_attempts[dir_or_file][attempt].success_percentage > most_success_percentage):
-                                        most_success_delimiter = self.delimiter_header_attempts[dir_or_file][attempt].delimiter
-                                        most_success_percentage = self.delimiter_header_attempts[dir_or_file][attempt].success_percentage
-                                        most_success_header = self.delimiter_header_attempts[dir_or_file][attempt].headers
+
+                        if(dir_or_file in self.delimiter_header_attempts):
+                                for attempt in range(len(self.delimiter_header_attempts[dir_or_file])):
+                                        if((self.delimiter_header_attempts[dir_or_file][attempt].success_percentage > most_success_percentage)
+                                           or ((self.delimiter_header_attempts[dir_or_file][attempt].success_percentage >= most_success_percentage)
+                                               and (len(most_success_delimiter) < len(self.delimiter_header_attempts[dir_or_file][attempt].delimiter)))
+                                           or ((self.delimiter_header_attempts[dir_or_file][attempt].success_percentage == most_success_percentage)
+                                               and (self.delimiter_header_attempts[dir_or_file][attempt].delimiter == '{}'))):
+                                        #if(
+                                        #        (self.delimiter_header_attempts[dir_or_file][attempt].success_percentage > most_success_percentage)
+                                        #        or ((self.delimiter_header_attempts[dir_or_file][attempt].success_percentage >= most_success_percentage)
+                                        #   and (len(most_success_delimiter) <= len(self.delimiter_header_attempts[dir_or_file][attempt].delimiter))
+                                        #            and self.delimiter_header_attempts[dir_or_file][attempt].delimiter == '{}')):
+                                                most_success_delimiter = self.delimiter_header_attempts[dir_or_file][attempt].delimiter
+                                                most_success_percentage = self.delimiter_header_attempts[dir_or_file][attempt].success_percentage
+                                                most_success_header = self.delimiter_header_attempts[dir_or_file][attempt].headers
 
                         directory = dir_or_file[:slash_loc+1]
 			
-			file_info = os.stat(dir_or_file)
-			self.file_list[dir_or_file] = nt(filename,
+                        file_info = os.stat(dir_or_file)
+                        self.file_list[dir_or_file] = nt(filename,
                                                          datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
                                                          datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
                                                          datetime.datetime.strptime(time.ctime(file_info.st_ctime), "%a %b %d %H:%M:%S %Y"),
@@ -240,8 +249,15 @@ class histogram:
                         
 
         def add_references_to_read(self,next_check):
+                """
+                Call this method to add a file / directory / and subdirectories to be read in
+                """
+
+                # Make absolute_path_to_file an absolute path to the file if it's not ...
+                my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
+                next_check = my_path + ('' if my_filename == None else my_filename)
+
                 # If we pass in a single file
-                
                 if os.path.isfile(next_check):
                         fail = '/' if(self.os_type == 'linux' or self.os_type == 'macintosh') else '\\'
                         absolute_path = next_check
@@ -262,18 +278,25 @@ class histogram:
                                         absolute_path = absolute_path.replace('//','/')
                                 elif(self.os_type == 'windows'):
                                         absolute_path = absolute_path.replace('\\\\','\\')
+
+                                if(self.os_type == 'windows' and (next_check + filename)[-1] != '\\'):
+                                        add_ending_slahes = '\\' if self.os_type == 'windows' else '/'
+                                elif((self.os_type == 'linux' or self.os_type == 'macintosh') and (next_check + filename)[-1] != '\\'):
+                                        add_ending_slahes = '\\' if self.os_type == 'windows' else '/'
                                 
-                                if(os.path.isdir(absolute_path) and (absolute_path) not in self.dirs_files_to_loop_through):
-                                #if(os.path.isdir(next_check + filename) and (next_check + filename) not in self.dirs_files_to_loop_through):
-                                        self.add_references_to_read(absolute_path)
-                                        #self.add_references_to_read(next_check  + filename)
+                                #if(os.path.isdir(absolute_path) and ((absolute_path) not in self.dirs_files_to_loop_through)):
+                                if(os.path.isdir(next_check + filename + add_ending_slahes) and ((next_check + filename + add_ending_slahes) not in self.dirs_files_to_loop_through)):
+                                        #pass
+                                        #self.add_references_to_read(absolute_path)
+                                        self.add_references_to_read(next_check  + filename + add_ending_slahes)
+                                
                                 if(absolute_path not in self.dirs_files_to_loop_through):
                                         self.dirs_files_to_loop_through.append(absolute_path)
                                 #print(absolute_path)
                                 #self.dirs_files_to_loop_through.append(next_check + filename)
                 else:
-                        my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
-                        next_check = my_path + '' if(my_filename == None) else my_filename
+                        #my_path, my_filename = self.convert_relative_path_to_absolute(next_check)
+                        #next_check = my_path + '' if(my_filename == None) else my_filename
                         if ((7 not in self.caught_errors) and (next_check not in self.caught_errors_files_or_dirs)):
                                         self.caught_errors.append(7)
                                         self.caught_errors_files_or_dirs.append(next_check)
@@ -283,7 +306,7 @@ class histogram:
                                                 temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
                                                 compatibility_print(temp)
 
-        def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000):
+        def attempt_to_read_file(self,absolute_path_to_file,headers,delimiter=None,lines_to_read=10000,read_header=False):
                 """
                 Pass in the absolute path to the file and the delimiter and this will read the file and return:
                         success percentage
@@ -295,27 +318,27 @@ class histogram:
                 nt_read = namedtuple('file_data',headers)
 
                 # namedtuple for delimiter success rate
-		nt_ans = namedtuple('delimiter_success_ratios','success_percentage delimiter headers')
+                nt_ans = namedtuple('delimiter_success_ratios','success_percentage delimiter headers')
 
                 # Save the data from the file to here as a namedtuple
                 ans = []
 
 		# Open the file for reading
-		readfile = open(absolute_path_to_file,'r')
+                readfile = open(absolute_path_to_file,'r')
 
 		# Count the lines we have read in
-		counter = -1
+                counter = -1
 
 		# Count successful inserts
-		successful_insert = 0
+                successful_insert = 0
 
 		# Count failed inserts
-		failure_insert = 0
+                failure_insert = 0
 
 		# Read in each line in the file
-		for line in readfile:
+                for line in readfile:
                         # Skip Header Line
-                        if(counter == -1):
+                        if(counter == -1 and read_header == False):
                                 pass
                         elif(counter > lines_to_read):
                                 # Once we read in an arbitrary number of lines stop
@@ -344,14 +367,110 @@ class histogram:
 
                 return nt_ans(float("{0:.2f}".format(temp)),delimiter,headers)
 
-        def read_file(self,absolute_path_to_file,delimiter,header):
+        def attempt_to_read_parameter_file(self,absolute_path_to_file,lines_to_read=10000):
+                """
+                Function to read in all the paramters to then do cool stuff like execute queries.
+                Last Update: 03/01/2017
+                By: LB023593
+                """
+            
+                from os import getcwd
+                from collections import defaultdict
+
+                # Initialize variables
+                charset_locs = defaultdict(list)
+                parameter = defaultdict(list)
+                charset_all_parameters = []
+                parameter_search = defaultdict(list)
+                parameters = defaultdict(list)
+                charset = list(set(''))
+
+                # namedtuple for delimiter success rate
+                nt_ans = namedtuple('delimiter_success_ratios','success_percentage delimiter headers')
+
+                # Open the file for reading from input_files
+                readfile = open(absolute_path_to_file,'r')
+
+                # Counts the number of lines with invalid paramters
+                successful_insert = 0
+                failure_insert = 0
+
+                # Counts the number of lines in the file
+                line_counter = 0
+            
+                # Go through each line in the file
+                for line in readfile:
+
+                        if(line_counter >= lines_to_read):
+                                break
+                        
+                        # Clear these variables for each line
+                        del charset
+                        del charset_locs
+
+                        line_counter += 1
+                        charset_locs = defaultdict(list)
+                        charset = list(set(line))
+
+                        # Loop through the charset
+                        for x in range(len(charset)):
+                                charset_locs[charset[x]] = list(find_all_return_generator(line,charset[x]))
+
+                                # Test to see if parameters were correctly entered
+                                try:
+                                        parameter_name_begin = int(charset_locs['{'][0])
+                                        parameter_name_end = int(charset_locs['}'][0])
+                                except:
+                                        parameter_name_end = -1
+                                        parameter_name_begin = -1
+
+                        # If a parameter was not entered correctly save the paramter as the line of the file
+                        if((parameter_name_end == -1 or parameter_name_begin == -1) or (parameter_name_end < parameter_name_begin)):
+                                failure_insert += 1
+                                
+                                # Let's not include invalid lines for now
+                                #parameters['invalid_line_'+str(line_counter)] = line.strip('\n')
+
+                        # Else save the paramter
+                        else:
+                                # Make
+                                parameter_search[line[int(parameter_name_begin)+1:int(parameter_name_end)]] = charset_locs
+                                parameters[line[int(parameter_name_begin)+1:int(parameter_name_end)]] = line[charset_locs['}'][0]+1:].strip('\n')
+                                successful_insert += 1
+
+                # Close the file
+                readfile.close()
+
+                ## Save the data
+                ##self.file_data[absolute_path_to_file] = parameters
+                ##self.file_line_count[absolute_path_to_file] = line_counter
+                ##self.file_histogram[absolute_path_to_file] = {}#histogram_ans
+
+                try:
+                        temp = (float(successful_insert))/float(line_counter)*100
+                except ZeroDivisionError:
+                        temp = float(0)
+
+                return nt_ans(float("{0:.2f}".format(temp)),'{}','')
+
+        def read_file(self,absolute_path_to_file,delimiter,header,read_header=False):
                 """
                 Reads in the data from the file.
                 """
 
-                # Make absolute_path_to_file an absolute path to the file if it's not ...
-                my_path, my_filename = self.convert_relative_path_to_absolute(absolute_path_to_file)
-                absolute_path_to_file = my_path + my_filename
+                ###--># Make absolute_path_to_file an absolute path to the file if it's not ...
+                ###-->my_path, my_filename = self.convert_relative_path_to_absolute(absolute_path_to_file)
+                ###-->absolute_path_to_file = my_path + my_filename
+
+                if(delimiter == '{}'):
+                        self.read_parameter_file(absolute_path_to_file)
+                else:
+                        self.read_delimiter_file(absolute_path_to_file,delimiter,header,read_header)
+
+        def read_delimiter_file(self,absolute_path_to_file,delimiter,header,read_header=False):
+                """
+                Reads in the data from a delimited file.
+                """
 
                 # namedtuple for headers
                 nt_read = namedtuple('file_data',header)
@@ -360,39 +479,42 @@ class histogram:
                 ans = []
 
                 # Open the file for reading
-		readfile = open(absolute_path_to_file,'r')
+                readfile = open(absolute_path_to_file,'r')
 
 		# Count successful inserts
-		successful_insert = 0
+                successful_insert = 0
 
 		# Count failed inserts
-		failure_insert = 0
+                failure_insert = 0
 
                 # count each header
                 counter = 0
 
                 nt_placeholder = []
 
-		histogram_nt_header = ''
-		for each_header in header.split(' '):
-                        fix_start_with_underscore = '' if(len(each_header) == 0) else each_header + '_'
-                        histogram_nt_header +=  fix_start_with_underscore + 'header_'+str(counter)+'_value_count header_' + str(counter) +'_duplicates '
+                histogram_nt_header = ''
+                for each_header in header.split(' '):
+                        #fix_start_with_underscore = '' if(len(each_header) == 0) else each_header + '_'
+                        #print(fix_start_with_underscore)
+                        #histogram_nt_header +=  fix_start_with_underscore + 'header_'+str(counter)+'_value_count header_' + str(counter) +'_duplicates '
+                        histogram_nt_header +=  each_header + ' ' + each_header +'_duplicate_count '
                         nt_placeholder.append({})
-                        nt_placeholder.append({})
+                        nt_placeholder.append({'duplicate_count':0})
                         counter += 1
                 histogram_nt_header = histogram_nt_header.strip()
 
-                nt_histogram = namedtuple('histogram',histogram_nt_header)
+                nt_histogram = namedtuple('duplicates',histogram_nt_header)
 
-                histogram_ans = nt_histogram(*[x for x in nt_placeholder])
+                #histogram_ans = nt_histogram(*[x for x in nt_placeholder])
+                histogram_ans = {}
 
                 # Count the lines we have read in
-		counter = -1
+                counter = -1
 		
-		for line in readfile:
+                for line in readfile:
                         counter += 1
                         insert_status = False
-                        if(counter == 0):
+                        if(counter == 0 and read_header == False):
                                 pass
                         else:
                                 try:
@@ -414,54 +536,49 @@ class histogram:
                                         #try:
                                         value_counter = 0
                                         for values in [x.strip() for x in line.split(delimiter)]:
-                                                if(values in histogram_ans[value_counter]):
-                                                        #if(value_counter == 0):
-                                                        #        compatibility_print('Increment: ' + values + ' ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
-                                                        histogram_ans[value_counter - 1]['duplicate_count'] = histogram_ans[value_counter - 1]['duplicate_count'] + 1
-                                                        histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
-                                                else:
-                                                        #if(value_counter == 0):
-                                                        #        compatibility_print('Initialize: ' + values)
-                                                        if(values not in histogram_ans[value_counter].keys()):
-                                                                histogram_ans[value_counter][values] = 1
-                                                        if('duplicate_count' not in histogram_ans[value_counter - 1].keys()):
-                                                                histogram_ans[value_counter - 1]['duplicate_count'] = 0
+
+                                                #print(str(value_counter),values,histogram_ans.keys())
+
+                                                try:
+                                                        if(header.split(' ')[value_counter] in histogram_ans):
+                                                                histogram_ans[header.split(' ')[value_counter]][values] += 1
+                                                                histogram_ans[header.split(' ')[value_counter] + '_duplicate_counter'] += 1
+                                                        else:
+                                                                histogram_ans[header.split(' ')[value_counter]] = {}
+                                                                histogram_ans[header.split(' ')[value_counter]][values] = 1
+                                                                histogram_ans[header.split(' ')[value_counter] + '_duplicate_counter'] = 0
+                                                except:
+                                                        histogram_ans[header.split(' ')[value_counter]][values] = 1
+                                                        #print("Errored on:",values)
+                                                        #print("Keys:")
+                                                        #print(histogram_ans[header.split(' ')[value_counter]].keys())
+                                                        #failll = raw_input("")
+
+                                                value_counter += 1
+                                                
+                                                ###if(values in histogram_ans[value_counter]):
+                                                ###        #if(value_counter == 0):
+                                                ###        #        compatibility_print('Increment: ' + values + ' ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
+                                                ###        histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
+                                                ###        histogram_ans[value_counter + 1]['duplicate_count'] = histogram_ans[value_counter + 1]['duplicate_count'] + 1
+                                                ###
+                                                ###else:
+                                                ###        #if(value_counter == 0):
+                                                ###        #        compatibility_print('Initialize: ' + values)
+                                                ###        if(values not in histogram_ans[value_counter].keys()):
+                                                ###                histogram_ans[value_counter][values] = 1
+
                                                 #if(value_counter == 0):
                                                 #        compatibility_print('Duplicate Count ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
-                                                value_counter += 2
+                                                ###value_counter += 2
                                         #except:
                                         #        #pass
                                         #        print([x.strip() for x in line.split(delimiter)])
-                                
-                                #try:
-                                #        # Attempt to insert the data in the namedtuple
-                                #        #ans.append(nt_read(*line.strip().split(delimiter)))
-                                #        
-                                #        ans.append(nt_read(*[x.strip() for x in line.split(delimiter)]))
-                                #
-                                #        value_counter = 0
-                                #        for values in [x.strip() for x in line.split(delimiter)]:
-                                #                if(values in histogram_ans[value_counter].keys()):
-                                #                        histogram_ans[value_counter - 1] = histogram_ans[value_counter - 1] + 1
-                                #                        histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
-                                #                else:
-                                #                        histogram_ans[value_counter][values] = 1
-                                #                        histogram_ans[value_counter - 1] = 1
-                                #                value_counter += 2
-                                #
-                                #        # Increment Successes
-                                #        successful_insert += 1
-                                #except:
-                                #        # Increment Failures
-                                #        failure_insert += 1
                                 
                 try:
                         temp = (float(successful_insert))/float(counter)*100
                 except ZeroDivisionError:
                         temp = float(0)
-
-                compatibility_print("File: "+absolute_path_to_file)
-                compatibility_print("Percent Successful: "+str("{0:.2f}".format(temp))+'%')
 
                 self.file_data[absolute_path_to_file] = ans
                 self.file_line_count[absolute_path_to_file] = counter
@@ -476,17 +593,106 @@ class histogram:
                 time_begin = datetime.datetime.now()
 		
                 for file_key in self.file_list.keys():
-                        if(self.file_list[file_key].type == 'File'):
+                        if(self.file_list[file_key].type == 'File' and self.file_list[file_key].delimiter == '{}'):
+                                self.read_parameter_file(self.file_list[file_key].directory + self.file_list[file_key].filename)
+                                
+                        elif(self.file_list[file_key].type == 'File'):
                                 self.read_file(self.file_list[file_key].directory + self.file_list[file_key].filename,self.file_list[file_key].delimiter,self.file_list[file_key].header)
 
                 time_end = datetime.datetime.now()
-		run_time = (time_end - time_begin).seconds
-                compatibility_print("All files read in: "+str(run_time)+" seconds.")
+                run_time = (time_end - time_begin).seconds
+		
+                if(len(self.file_list.keys()) == 1):
+                        compatibility_print("1 file read in: "+str(run_time)+" seconds.")
+                else:
+                        compatibility_print(str(len(self.file_list.keys())) + " files read in: "+str(run_time)+" seconds.")
+
+        def read_parameter_file(self,absolute_path_to_file):
+                """
+                Function to read in all the paramters to then do cool stuff like execute queries.
+                Last Update: 03/01/2017
+                By: LB023593
+                """
+
+                from os import getcwd
+                from collections import defaultdict
+
+                # Initialize variables
+                charset_locs = defaultdict(list)
+                parameter = defaultdict(list)
+                charset_all_parameters = []
+                parameter_search = defaultdict(list)
+                parameters = defaultdict(list)
+                charset = list(set(''))
+
+                # Open the file for reading from input_files
+                readfile = open(absolute_path_to_file,'r')
+
+                # Counts the number of lines with invalid paramters
+                successful_insert = 0
+                failure_insert = 0
+
+                # Counts the number of lines in the file
+                line_counter = 0
+            
+                # Go through each line in the file
+                for line in readfile:
+                        
+                        # Clear these variables for each line
+                        del charset
+                        del charset_locs
+
+                        line_counter += 1
+                        charset_locs = defaultdict(list)
+                        charset = list(set(line))
+
+                        # Loop through the charset
+                        for x in range(len(charset)):
+                                charset_locs[charset[x]] = list(find_all_return_generator(line,charset[x]))
+
+                                # Test to see if parameters were correctly entered
+                                try:
+                                        parameter_name_begin = int(charset_locs['{'][0])
+                                        parameter_name_end = int(charset_locs['}'][0])
+                                except:
+                                        parameter_name_end = -1
+                                        parameter_name_begin = -1
+
+                        # If a parameter was not entered correctly save the paramter as the line of the file
+                        if((parameter_name_end == -1 or parameter_name_begin == -1) or (parameter_name_end < parameter_name_begin)):
+                                failure_insert += 1
+                                parameters['invalid_line_'+str(line_counter)] = line.strip('\n')
+
+                        # Else save the paramter
+                        else:
+                                # Make
+                                parameter_search[line[int(parameter_name_begin)+1:int(parameter_name_end)]] = charset_locs
+                                parameters[line[int(parameter_name_begin)+1:int(parameter_name_end)]] = line[charset_locs['}'][0]+1:].strip('\n')
+                                #compatibility_print(line[charset_locs['}'][0]+1:].strip('\n'))
+                                successful_insert += 1
+
+                # Close the file
+                readfile.close()
+
+                # Save the data
+                self.file_data[absolute_path_to_file] = parameters
+                self.file_line_count[absolute_path_to_file] = line_counter
+                self.file_histogram[absolute_path_to_file] = {}#histogram_ans
+
+                try:
+                        temp = (float(successful_insert))/float(line_counter)*100
+                except ZeroDivisionError:
+                        temp = float(0)
 
         def get_header_and_delimiter(self,absolute_path_to_file,delimiter=None):
                 """
                 Recursive method if no delimiter is passed in.
                 """
+
+                ###--># Make absolute_path_to_file an absolute path to the file if it's not ...
+                ###-->my_path, my_filename = self.convert_relative_path_to_absolute(absolute_path_to_file)
+                ###-->absolute_path_to_file = my_path + '' if my_filename == None else my_filename
+
                 if(os.path.isdir(absolute_path_to_file)):
                         self.delimiter_header_attempts[absolute_path_to_file] = []
                 elif(delimiter == None):
@@ -494,6 +700,42 @@ class histogram:
                         header = readfile.readline().strip()
                         readfile.close()
                         del readfile
+
+                        # Default the file format to delimiter
+                        # If any case below matches update it to desired format
+                        file_format = 'delimiter'
+
+                        # Check for filetypes that cannot be read in with a delimiter
+                        if(len(header) == 0):
+                                compatibility_print(absolute_path_to_file)
+                                compatibility_print("Has no header")
+                                file_format = 'unknown'
+                        elif(('<?xml' in header) or (header[0] == '<' and header[-1] == '>')):
+                                compatibility_print(absolute_path_to_file)
+                                compatibility_print('Is an XML file and is not yet supported')
+                                file_format = 'xml'
+                        elif(('{"' in header) or ('{' == header)):
+                                compatibility_print(absolute_path_to_file)
+                                compatibility_print('Is a JSON file and is not yet supported')
+                                file_format = 'json'
+                        elif(('{' == header[0]) and ('}' in header)):
+                                try:
+                                        parameter_file_type_check = header[header.find('{')+1:header.find('}')]
+                                        unique_chars_in_header = list(set(header))
+                                        for char in list(set(header)):
+                                                # Exclude a-z,A-Z,' ', '-', '_', or a number
+                                                if((ord(char) >= 65 and ord(char) <= 90) or (ord(char) >= 97 and ord(char) <= 122) or (ord(char) == 32)
+                                                   or (ord(char) == 45) or (ord(char) == 95) or ((ord(char) >= 48) and (ord(char) <= 57))):
+                                                        pass
+                                                else:
+                                                        parameter_file_type_check = False
+                                                        break
+                                        parameter_file_type_check = True
+                                except:
+                                        parameter_file_type_check = False
+
+                                if(parameter_file_type_check):
+                                        file_format = 'parameter'
 
                         unique_chars_in_header = list(set(header))
                         count_chars = {}
@@ -508,6 +750,7 @@ class histogram:
 
                         temp = {}
                         # Remove the alphanumeric characters from consideration of being a delimiter
+                        # All alphanumeric chars will have a count of 0
                         for key in count_chars:
                                 if(count_chars[key] == 0):
                                         pass
@@ -515,9 +758,60 @@ class histogram:
                                         temp[key] = count_chars[key]
                         count_chars = temp
 
+                        if(file_format == 'parameter'):
+                                count_chars['{}'] = 1
+
+                        # The below code could probably be in some kind of loop but hardcoding 2x to 5x seems decent enough for now
+                        # Come back and check to see how many of the same character appear next to each other in a loop rather than hardcoded
+
+                        # See if any double character is a delimiter
+                        temp_additional_delimiter_dict = {}
+                        for key in count_chars:
+                                if key + key in header:
+                                        temp_additional_delimiter_dict[key + key] = len(list(find_all_return_generator(header,key + key)))
+                        for key in temp_additional_delimiter_dict:
+                                count_chars[key] = temp_additional_delimiter_dict[key]
+
+                        # See if any triple character is a delimiter
+                        temp_additional_delimiter_dict = {}
+                        for key in count_chars:
+                                if key + key + key in header:
+                                        temp_additional_delimiter_dict[key + key + key] = len(list(find_all_return_generator(header,key + key + key)))
+                        for key in temp_additional_delimiter_dict:
+                                count_chars[key] = temp_additional_delimiter_dict[key]
+
+                        # See if any quadruple character is a delimiter
+                        temp_additional_delimiter_dict = {}
+                        for key in count_chars:
+                                if key + key + key in header:
+                                        temp_additional_delimiter_dict[key + key + key + key] = len(list(find_all_return_generator(header,key + key + key + key)))
+                        for key in temp_additional_delimiter_dict:
+                                count_chars[key] = temp_additional_delimiter_dict[key]
+
+                        # See if any quintuple character is a delimiter
+                        temp_additional_delimiter_dict = {}
+                        for key in count_chars:
+                                if key + key + key in header:
+                                        temp_additional_delimiter_dict[key + key + key + key + key] = len(list(find_all_return_generator(header,key + key + key + key + key)))
+                        for key in temp_additional_delimiter_dict:
+                                count_chars[key] = temp_additional_delimiter_dict[key]
+
+                        # Somewhere around right here check if another file_format besides delimiter was found
+                        # Write method to record it's success ratio for it to be considered when reading in the file
+
+                        # Recursively call this method
+                        # Record each delimiter attempt and it's success ratio
+                        # The most successful delimiter will be used to read in the whole file
                         for test_delimiter in count_chars:
                                 self.get_header_and_delimiter(absolute_path_to_file,test_delimiter)
-                        
+                                
+                elif(delimiter == '{}'):
+
+                        if(absolute_path_to_file in self.delimiter_header_attempts):
+                                self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_parameter_file(absolute_path_to_file))
+                        else:
+                                self.delimiter_header_attempts[absolute_path_to_file] = []
+                                self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_parameter_file(absolute_path_to_file))
                 else:
                         readfile = open(absolute_path_to_file,'r')
                         header = readfile.readline()
@@ -597,7 +891,7 @@ class histogram:
                 
                 if(self.os_type == 'linux'):
                         temp_path = path.replace('//','/')
-			temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
+                        temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
                         my_filename = temp_path[temp_path_slash_locs[-1]+1:]
 
                         # If we are given a relative path make it an absolute path
@@ -631,14 +925,17 @@ class histogram:
                                                 temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
                                                 compatibility_print(temp)
                                 
-		elif(self.os_type == 'windows'):
+                elif(self.os_type == 'windows'):
                         # If the file in on a Network Share add back the second set of double slashes
                         if(path[0:2] == '\\\\'):
                                 temp_path = '\\' + path.replace('\\\\','\\')
                         else:
                                 temp_path = path.replace('\\\\','\\')
-			temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+                        #print('0',temp_path)
+                        temp_path_slash_locs = list(find_all_return_generator(temp_path,'\\'))
+			#print('1',temp_path_slash_locs)
                         my_filename = temp_path[temp_path_slash_locs[-1]+1:]
+                        #print('2',my_filename)
 
                         # If we are given a relative path make it an absolute path
                         if(len(double_dot_locs) > 0):
@@ -671,9 +968,9 @@ class histogram:
                                                 temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
                                                 compatibility_print(temp)
                                 
-		elif(self.os_type == 'macintosh'):
+                elif(self.os_type == 'macintosh'):
 			
-			temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
+                        temp_path_slash_locs = list(find_all_return_generator(temp_path,'/'))
                         my_filename = temp_path[temp_path_slash_locs[-1]+1:]
 
                         # If we are given a relative path make it an absolute path
@@ -705,27 +1002,75 @@ class histogram:
                                                 temp = temp.replace('REPLACE_WITH_my_path',my_path)
                                                 temp = temp.replace('REPLACE_WITH_my_filename',my_filename)
                                                 compatibility_print(temp)
-		else:
-			self.caught_errors.append(6)
+                else:
+                        self.caught_errors.append(6)
                         for error_message in self.error_codes[6]:
                                 compatibility_print(error_message)
 
                 return my_path, my_filename
 
-	def help(self,which=None):
-		compatibility_print("\n[ Help Options for Histogram Class ]",'\n\n')
-		if(which == None):
-			compatibility_print("[ No Options passed in.  Please re-run. ]")
-			compatibility_print(".help('vars')")
-			compatibility_print(".help('methods')")
-		elif(which == 'vars'):
-			compatibility_print("[ Variables ]",'\n\n')
-			compatibility_print(".is_file\n\tBoolean: True/False\n\tDescription is it file or not?",'\n\n')
-			compatibility_print(".is_dir\n\tBoolean: True/False",'\n\n')
-			compatibility_print(".root_object\n\tThe type of object passed to create the class",'\n\n')
-			compatibility_print(".path\n\tThe path passed in when the Histogram object was created",'\n\n')
-		elif(which == 'methods'):
-			compatibility_print(" [ Methods ]",'\n\n')
-			compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')
+        def show_unique_columns(self):
+                for file_key in self.file_list.keys():
+                        found = False
+                        unique_columns = []
+                        compatibility_print(file_key)
+                        for column in self.file_list[file_key].header.split(' '):
+                                if((len(self.file_list[file_key].delimiter) == 1) and (self.file_histogram[file_key][column + '_duplicate_counter'] == 0)):
+                                        found = True
+                                        unique_columns.append(column)
+                        if(found):
+                                compatibility_print("Has the following unique columns:")
+                                for found_unique_column in unique_columns:
+                                        compatibility_print(found_unique_column)
+                        elif((found == False) and (self.file_list[file_key].delimiter == '{}')):
+                                compatibility_print("Unique Columns Not Applicable")
+                        else:        
+                                compatibility_print("Has no unique columns")
+                        compatibility_print("")
+
+        def show_file_summary(self):
+                for file_key in self.file_list.keys():
+                        compatibility_print('[' + ('-'*78) + ']')
+                        compatibility_print(file_key)
+                        compatibility_print("Lines Read In:" + " "*(23 - len(str(self.file_line_count[file_key]))) + str(self.file_line_count[file_key]))
+                        compatibility_print("Success Percentage:" + " "*(20 - len(str(self.file_list[file_key].success_percentage))) + str(self.file_list[file_key].success_percentage) + '%')
+                        if(self.file_list[file_key].delimiter == '{}'):
+                                pass
+                        else:
+                                compatibility_print("")
+                                compatibility_print("Column" + " "*(50 - len("Column")) + "Duplicate Count" + " "*(25 - len("Duplicate Count")) + "Ratio")
+                                compatibility_print("")
+                                for each_header in self.file_list[file_key].header.split(' '):
+                                        try:
+                                                column_unique_ratio = (float(self.file_histogram[file_key][each_header + '_duplicate_counter']))/float(self.file_line_count[file_key])*100
+                                        except ZeroDivisionError:
+                                                column_unique_ratio = 0
+
+                                        spacing_1 = len(each_header)
+                                        spacing_2 = len(str(self.file_histogram[file_key][each_header + '_duplicate_counter']))
+                                        spacing_3 = len(str(float("{0:.2f}".format(column_unique_ratio))))
+                                
+                                        compatibility_print(each_header
+                                                            + " "*(50 - spacing_1)
+                                                            +str(self.file_histogram[file_key][each_header + '_duplicate_counter']) + " "*(15 - spacing_2)
+                                                            + " "*(15 - spacing_3) + str(float("{0:.2f}".format(column_unique_ratio))) + '%')
+                        compatibility_print("")
+
+
+        def help(self,which=None):
+                compatibility_print("\n[ Help Options for Histogram Class ]",'\n\n')
+                if(which == None):
+                        compatibility_print("[ No Options passed in.  Please re-run. ]")
+                        compatibility_print(".help('vars')")
+                        compatibility_print(".help('methods')")
+                elif(which == 'vars'):
+                        compatibility_print("[ Variables ]",'\n\n')
+                        compatibility_print(".is_file\n\tBoolean: True/False\n\tDescription is it file or not?",'\n\n')
+                        compatibility_print(".is_dir\n\tBoolean: True/False",'\n\n')
+                        compatibility_print(".root_object\n\tThe type of object passed to create the class",'\n\n')
+                        compatibility_print(".path\n\tThe path passed in when the Histogram object was created",'\n\n')
+                elif(which == 'methods'):
+                        compatibility_print(" [ Methods ]",'\n\n')
+                        compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')
 
         

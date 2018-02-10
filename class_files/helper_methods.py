@@ -22,11 +22,14 @@ def compatibility_print(string,end="\n"):
     I've found it harder to read.
     """
     if(python_version().find('2.') > -1):
-	    if(end == "\n"):
-		    print string
-	    else:
-		    print string+end
+        if(end == "\n" or end == '\n'):
+            print string
+        else:
+            print string+end
     elif(python_version().find('3.') > -1):
-	    print(string,end)
+        if(end == "\n" or end == '\n'):
+            print(string)
+        else:
+            print(string,end)
     else:
-	    print("Compatibility Print for" + python_version() + " is not yet supported.")
+	    print("Compatibility Print for " + python_version() + " is not yet supported.")

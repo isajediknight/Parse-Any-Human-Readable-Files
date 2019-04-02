@@ -1,9 +1,54 @@
 import os,time,datetime,sys,platform
 from os import getcwd
 from collections import namedtuple
+from collections import defaultdict
 from platform import python_version
 from helper_methods import compatibility_print
 from helper_methods import find_all_return_generator
+from helper_methods import determine_if_datetime
+from helper_methods import determine_datatype
+
+# Checking Python Version
+if(sys.version.find('3.4') == 0):
+        # Adding Support for MSFT Teams Integration
+        if(sys.platform.lower().startswith('linux') or sys.platform.lower().startswith('mac')):
+                sys.path.insert(0,'../modules/Python34/')
+                sys.path.insert(0,'../modules/Python34/certifi/')
+                sys.path.insert(0,'../modules/Python34/chardet/')
+                sys.path.insert(0,'../modules/Python34/idna/')
+                sys.path.insert(0,'../modules/Python34/requests/')
+                sys.path.insert(0,'../modules/Python34/urllib3/')
+        elif(sys.platform.lower().startswith('win')):
+                sys.path.insert(0,'..\\modules\\Python34\\')
+                sys.path.insert(0,'..\\modules\\Python34\\certifi\\')
+                sys.path.insert(0,'..\\modules\\Python34\\chardet\\')
+                sys.path.insert(0,'..\\modules\\Python34\\idna\\')
+                sys.path.insert(0,'..\\modules\\Python34\\requests\\')
+                sys.path.insert(0,'..\\modules\\Python34\\urllib3\\')
+        else:
+                print('OS ' + sys.platform + ' is not supported')
+
+# Brute Force Fix...
+if(sys.version.find('2.6') == 0):
+        # Adding Support for MSFT Teams Integration
+        if(sys.platform.lower().startswith('linux') or sys.platform.lower().startswith('mac')):
+                sys.path.insert(0,'../modules/Python26/')
+                sys.path.insert(0,'../modules/Python26/certifi/')
+                sys.path.insert(0,'../modules/Python26/chardet/')
+                sys.path.insert(0,'../modules/Python26/idna/')
+                sys.path.insert(0,'../modules/Python26/requests/')
+                sys.path.insert(0,'../modules/Python26/urllib3/')
+        elif(sys.platform.lower().startswith('win')):
+                sys.path.insert(0,'..\\modules\\Python26\\')
+                sys.path.insert(0,'..\\modules\\Python26\\certifi\\')
+                sys.path.insert(0,'..\\modules\\Python26\\chardet\\')
+                sys.path.insert(0,'..\\modules\\Python26\\idna\\')
+                sys.path.insert(0,'..\\modules\\Python26\\requests\\')
+                sys.path.insert(0,'..\\modules\\Python26\\urllib3\\')
+        else:
+                print('OS ' + sys.platform + ' is not supported')
+
+import pymsteams
 
 class histogram:
         """
@@ -40,13 +85,13 @@ class histogram:
         error_codes[1].append("Character: 'REPLACE_WITH_replace_char' in 'REPLACE_WITH_header' is not a valid character for a header.")
         error_codes[1].append("Please change the header column in REPLACE_WITH_self.path to start with a letter of the alphabet.")
         error_codes[1].append("Column has been renamed in order for program to continue.\n")
-        # Need to come back and reake this error code
+        # Need to come back and remake this error code
         #error_codes[2] = []
         #error_codes[2].append("[ Caught Exception ]")
         #error_codes[2].append("Error Code: 2 < Invalid OS and Path Combination >\n")
         #error_codes[2].append("Detected OS: REPLACE_WITH_self.os_type")
         #error_codes[2].append("Detected Path Type: REPLACE_WITH_self.path_type\n")
-        #error_codes[2].append("> This is a Fatal Error.  Program Exiting. <\n")
+        #error_codes[2].append("> This is a Fatal Error.  Program Exitinself. <\n")
         error_codes[3] = []
         error_codes[3].append("[ Caught Exception ]")
         error_codes[3].append("Error Code: 3 < Beginning Or Ending Spaces Found In Path + Filename >\n")
@@ -83,13 +128,17 @@ class histogram:
         error_codes[9].append("Error Code: 9 < Headers In File Contain Non-AlphaNumeric Characters >")
         error_codes[9].append("File <REPLACE_WITH_absolute_path_to_file>\n")
         error_codes[9].append("Contains the following Non-AlphaNumeric characters in it's Headers:")
+        error_codes[10] = []
+        error_codes[10].append("[ Caught Exception ]")
+        error_codes[10].append("Error Code: 10 < Header Mismatch >")
+        error_codes[10].append("Number of headers don't match number of columns.")
 
         python_key_words = ['False','class','finally','is','return','None','continue','for','lambda','try','True','def','from',
                             'nonlocal','while','and','del','global','not','with','as','elif','if','or','yield','assert','else',
                             'import','pass','break','except','in','raise']
         invalid_nt_field_chars = ['-']
 
-        def __init__(self,path):
+        def __init__(self,path,read_in_preferences = {}):
 		# Benchmark all the things!
                 time_begin = datetime.datetime.now()
 
@@ -108,7 +157,6 @@ class histogram:
                                 compatibility_print(temp)
                         path = temp_path
                 else:
-                        #temp_path = path
                         pass
 
                 # For dealing with python version compatibility
@@ -130,12 +178,11 @@ class histogram:
                 # Includes subdirectories recursively
                 self.dirs_files_to_loop_through = []
 
-                ###-->my_path, my_filename = self.convert_relative_path_to_absolute(path)
+                # If we want to order the data, de-dupe, etc use this variable to handle that
+                # {'absolute_path_to_file':{'order':'ascending','de-dupe':True}}
+                self.read_in_preferences = {}
 
-                ###-->self.add_references_to_read(my_path + ('' if my_filename == None else my_filename))
-                self.add_references_to_read(path)
-
-                ###-->self.path = my_path + ('' if my_filename == None else my_filename)
+                self.add_references_to_read(path,read_in_preferences)
 
                 if(3 in self.caught_errors):
                         compatibility_print("Corrected Path Without Spaces: >"+"<\n")
@@ -151,6 +198,12 @@ class histogram:
                 # This will contain the data of the file if so desired
                 self.file_data = {}
 
+                # This will contain the column data types in the file
+                self.data_types = {}
+
+                #This will contain the individual data points in the file
+                self.data_points =  {}
+
                 # This will count the lines in the file
                 self.file_line_count = {}
 
@@ -160,25 +213,86 @@ class histogram:
 		# Save delimiter and Header attempts
                 self.delimiter_header_attempts = {}
 
-                # We should make this be manually called so dirs_files_to_loop_through can be built
-                #self.get_all_file_info()
+                #INOD-DM
+                self.customizations = {}
+                
+                #INOD-DM
+                self.customizations_initialized = False
 
                 time_end = datetime.datetime.now()
                 run_time = (time_end - time_begin).seconds
 		#compatibility_print("Initialized in: "+str(run_time)+" seconds.")
 
-        def get_all_file_info(self):
+
+        def initialize_customizations(self): #EC-DM
+                nt = namedtuple('customizations','order dedupe headers delimiter headerless')
+                for key in self.dirs_files_to_loop_through:
+                        self.customizations[key] = nt(False,False,False,False,False)
+                self.customizations_initialized = True
+
+        #PC-DM:can add more methods as needed
+               
+        def set_customization(self,path,aspect,value): #EC-DM
+                valid_path = False
+                if self.customizations_initialized != True:
+                        #print('CUSTOMIZATIONS NOT INITIALIZED -> INITIALIZING...') #DB-DM RL-DM
+                        self.initialize_customizations()
+                try:
+                        absolute_path = str(self.convert_relative_path_to_absolute(path)[0]) + str(self.convert_relative_path_to_absolute(path)[1])
+                        valid_path = True
+                except:
+                        print("Invalid path. Customization ignored.")
+                if valid_path == True:
+                        if os.path.isdir(absolute_path) == False and os.path.isfile(absolute_path) == False:
+                                        print("Invalid path. Customization ignored.")
+                                        valid_path = False
+                
+                #print('ABSOLUTE_PATH:'+absolute_path)#DB-DM RL-DM
+
+                if valid_path == True:
+                        for key in self.dirs_files_to_loop_through:
+                                if absolute_path == key:
+
+                                        #print("File exists") #DB-DM
+                                        
+                                        if aspect.lower() == 'order':
+                                                self.customizations[key] = self.customizations[key]._replace(order=value)
+                                        elif aspect.lower() == 'dedupe':
+                                                self.customizations[key] = self.customizations[key]._replace(dedupe=value)
+                                        elif aspect.lower() == 'headers':
+                                                self.customizations[key] = self.customizations[key]._replace(headers=value)
+                                        elif aspect.lower() == 'headerless':
+                                                self.customizations[key] = self.customizations[key]._replace(headerless=value)
+                                                print("YES. This is on.") #DB-DM
+                                        elif aspect.lower() == 'delimiter':
+                                                self.customizations[key] = self.customizations[key]._replace(delimiter=value)
+                                        
+                                        else:
+                                                print("ASPECT UNIDENTIFIED") #DB;RL-DM
+                else:
+                        pass
+                                        
+               
+                        
+        #Validate that key is in self.dirs_files_to_loop_through. If it is, then you can add the customizations to self.customizations
+        #This must be run after histogram and/or add_references_to_read and before get_all_file_info
+        #Key = C:\filename.txt
+        ##customizations = ['descending','dedupe','
+                
+        def get_all_file_info(self): #EC-DM
                 """
                 Version 2 of this.  Decided to do the recursive search prior to reading in all the info.
                 """
+                
                 # Run this if we have no files or directories yet
                 if(len(self.dirs_files_to_loop_through) == 0):
                         self.add_references_to_read(self.path)
 
                 # Data points we want to capture
                 nt = namedtuple('file_attributes','filename accessed modified created directory raw_size type header filetype delimiter success_percentage')
-
+                
                 for dir_or_file in self.dirs_files_to_loop_through:
+                        #print('DIRECTORY:' + dir_or_file) #DB-DM RL
 
                         if(len(list(find_all_return_generator(dir_or_file,'.'))) == 0):
                                 # It's likely we're dealing with a directory
@@ -208,14 +322,13 @@ class histogram:
 
                         filename = '' if os.path.isdir(dir_or_file) else dir_or_file[slash_loc+1:]
 
-                        # NEED TO COME BACK AND ADD LOGIC FOR FILES THAT DONT EXIST
-                        if((dir_or_file) not in self.delimiter_header_attempts):
+                        if((dir_or_file) not in self.delimiter_header_attempts): #POI-DM: Calling get_header_and_delimiter
                                 self.get_header_and_delimiter(dir_or_file)
-
+                                
                         most_success_delimiter = ''
                         most_success_percentage = float(0.0)
                         most_success_header = ''
-
+                        
                         if(dir_or_file in self.delimiter_header_attempts):
                                 for attempt in range(len(self.delimiter_header_attempts[dir_or_file])):
                                         if((self.delimiter_header_attempts[dir_or_file][attempt].success_percentage > most_success_percentage)
@@ -228,13 +341,18 @@ class histogram:
                                         #        or ((self.delimiter_header_attempts[dir_or_file][attempt].success_percentage >= most_success_percentage)
                                         #   and (len(most_success_delimiter) <= len(self.delimiter_header_attempts[dir_or_file][attempt].delimiter))
                                         #            and self.delimiter_header_attempts[dir_or_file][attempt].delimiter == '{}')):
+                                                
                                                 most_success_delimiter = self.delimiter_header_attempts[dir_or_file][attempt].delimiter
                                                 most_success_percentage = self.delimiter_header_attempts[dir_or_file][attempt].success_percentage
                                                 most_success_header = self.delimiter_header_attempts[dir_or_file][attempt].headers
+                                                
+                      
 
                         directory = dir_or_file[:slash_loc+1]
 			
                         file_info = os.stat(dir_or_file)
+
+                        #POI-DM
                         self.file_list[dir_or_file] = nt(filename,
                                                          datetime.datetime.strptime(time.ctime(file_info.st_atime), "%a %b %d %H:%M:%S %Y"),
                                                          datetime.datetime.strptime(time.ctime(file_info.st_mtime), "%a %b %d %H:%M:%S %Y"),
@@ -247,8 +365,7 @@ class histogram:
                                                          None if os.path.isdir(dir_or_file) else most_success_delimiter,
                                                          None if os.path.isdir(dir_or_file) else most_success_percentage)
                         
-
-        def add_references_to_read(self,next_check):
+        def add_references_to_read(self,next_check,read_in_preferences={}):
                 """
                 Call this method to add a file / directory / and subdirectories to be read in
                 """
@@ -268,6 +385,7 @@ class histogram:
                         
                         if(absolute_path not in self.dirs_files_to_loop_through):
                                 self.dirs_files_to_loop_through.append(absolute_path)
+                                self.read_in_preferences[absolute_path] = read_in_preferences
                         
                 # If we pass in a directory
                 elif os.path.isdir(next_check):
@@ -288,10 +406,11 @@ class histogram:
                                 if(os.path.isdir(next_check + filename + add_ending_slahes) and ((next_check + filename + add_ending_slahes) not in self.dirs_files_to_loop_through)):
                                         #pass
                                         #self.add_references_to_read(absolute_path)
-                                        self.add_references_to_read(next_check  + filename + add_ending_slahes)
+                                        self.add_references_to_read(next_check  + filename + add_ending_slahes,read_in_preferences)
                                 
                                 if(absolute_path not in self.dirs_files_to_loop_through):
                                         self.dirs_files_to_loop_through.append(absolute_path)
+                                        self.read_in_preferences[absolute_path] = read_in_preferences
                                 #print(absolute_path)
                                 #self.dirs_files_to_loop_through.append(next_check + filename)
                 else:
@@ -314,6 +433,8 @@ class histogram:
 
                 Arbitrarily picked 10,000 lines to read in to test reading
                 """
+                #print("IN ATTEMPT TO READ FILE:" + headers) #DB-DM RL
+                
                 # namedtuple for headers
                 nt_read = namedtuple('file_data',headers)
 
@@ -337,9 +458,23 @@ class histogram:
 
 		# Read in each line in the file
                 for line in readfile:
-                        # Skip Header Line
+                                
+                        #Determining if header is skipped or not
                         if(counter == -1 and read_header == False):
-                                pass
+                                if self.customizations_initialized == True and self.customizations[absolute_path_to_file].headers != False:
+                                        try:
+                                                # Attempt to insert the data in the namedtuple
+                                                ans.append(nt_read(*line.split(delimiter)))
+
+                                                # Increment Successes
+                                                successful_insert += 1
+                                        except:
+                                                # Increment Failures
+                                                failure_insert += 1
+                                # Skip Header Line
+                                else:
+                                        pass
+                                
                         elif(counter > lines_to_read):
                                 # Once we read in an arbitrary number of lines stop
                                 # This method just tests how successful an attempt to read the file is
@@ -364,7 +499,6 @@ class histogram:
                         temp = float(0)
 
                 readfile.close()
-
                 return nt_ans(float("{0:.2f}".format(temp)),delimiter,headers)
 
         def attempt_to_read_parameter_file(self,absolute_path_to_file,lines_to_read=10000):
@@ -373,10 +507,6 @@ class histogram:
                 Last Update: 03/01/2017
                 By: LB023593
                 """
-            
-                from os import getcwd
-                from collections import defaultdict
-
                 # Initialize variables
                 charset_locs = defaultdict(list)
                 parameter = defaultdict(list)
@@ -441,7 +571,7 @@ class histogram:
                 # Close the file
                 readfile.close()
 
-                ## Save the data
+                ## We won't save the data because we are just attempting to read it
                 ##self.file_data[absolute_path_to_file] = parameters
                 ##self.file_line_count[absolute_path_to_file] = line_counter
                 ##self.file_histogram[absolute_path_to_file] = {}#histogram_ans
@@ -458,10 +588,6 @@ class histogram:
                 Reads in the data from the file.
                 """
 
-                ###--># Make absolute_path_to_file an absolute path to the file if it's not ...
-                ###-->my_path, my_filename = self.convert_relative_path_to_absolute(absolute_path_to_file)
-                ###-->absolute_path_to_file = my_path + my_filename
-
                 if(delimiter == '{}'):
                         self.read_parameter_file(absolute_path_to_file)
                 else:
@@ -471,7 +597,53 @@ class histogram:
                 """
                 Reads in the data from a delimited file.
                 """
+                #print("IN READ_DELIMITER_FILE, HEADER = " + header) #DB-DM
+                #print("IN READ_DELIMITER_FILE, DELIMITER = " + delimiter) #DB-DM
+                
+                # Open the file for reading
+                readfile = open(absolute_path_to_file,'r')
+                
+                lines = []
+                counter = 0
+                header_line = '' #POI-DM: Differing between the 'lines' and 'headers' #EC-DM: Also changed readfile structures
+                for line in readfile:
+                        if (counter == 0):
+                                if self.customizations_initialized == True:   
+                                        if self.customizations[absolute_path_to_file].headers != False:
+                                                header_line = self.customizations[absolute_path_to_file].headers
+                                                if (self.customizations[absolute_path_to_file].headerless == True
+                                                    or str(self.customizations[absolute_path_to_file].headerless).lower() == 'true'):
+                                                        lines.append(line.strip())
+                                                else:
+                                                        pass
+                                        else:
+                                               header_line = line
+                                else:
+                                        pass
+                        else:
+                                lines.append(line.strip())
+                        
+                        counter += 1
+                readfile.close()
+           
+                #POI-DM: Rely on customizations instead of read_in_preferences
+                if(self.customizations_initialized == True):
+                        if(self.customizations[absolute_path_to_file].dedupe == True
+                           or str(self.customizations[absolute_path_to_file].dedupe).lower() == 'true'
+                           or self.customizations[absolute_path_to_file].dedupe == 'de-dupe'
+                           or self.customizations[absolute_path_to_file].dedupe == 'de-duplicate'):
+                                #print("*Custom dedupe preference given: " + str(self.customizations[absolute_path_to_file].dedupe)) DB-DM
+                                lines = list(set(lines))
+                               
 
+                if(self.customizations_initialized == True):
+                        if(self.customizations[absolute_path_to_file].order == 'ascending'):
+                                #print("*Custom order given: " + self.customizations[absolute_path_to_file].order) DB-DM RL
+                                lines = sorted(lines)
+                        elif(self.customizations[absolute_path_to_file].order == 'descending'):
+                                #print("*Custom order given: " + self.customizations[absolute_path_to_file].order) DB-DM
+                                lines = list(reversed(sorted(lines)))
+ 
                 # namedtuple for headers
                 nt_read = namedtuple('file_data',header)
                 
@@ -493,10 +665,9 @@ class histogram:
                 nt_placeholder = []
 
                 histogram_nt_header = ''
-                for each_header in header.split(' '):
-                        #fix_start_with_underscore = '' if(len(each_header) == 0) else each_header + '_'
-                        #print(fix_start_with_underscore)
-                        #histogram_nt_header +=  fix_start_with_underscore + 'header_'+str(counter)+'_value_count header_' + str(counter) +'_duplicates '
+                for each_header in header.split(' '): #POI-DM
+                        #print("EACH_HEADER:"+each_header)#DB-DM RL
+                        
                         histogram_nt_header +=  each_header + ' ' + each_header +'_duplicate_count '
                         nt_placeholder.append({})
                         nt_placeholder.append({'duplicate_count':0})
@@ -511,17 +682,15 @@ class histogram:
                 # Count the lines we have read in
                 counter = -1
 		
-                for line in readfile:
+                for line in lines:
                         counter += 1
                         insert_status = False
-                        if(counter == 0 and read_header == False):
+                        if(False):#counter == 0 and read_header == False):
                                 pass
                         else:
                                 try:
                                         # Attempt to insert the data in the namedtuple
-                                        #ans.append(nt_read(*line.strip().split(delimiter)))
-
-                                        ans.append(nt_read(*[x.strip() for x in line.split(delimiter)]))
+                                        ans.append(nt_read(*[x.strip() for x in line.split(delimiter)])) #POI-DM: Splitting lines w/ delimiter
 
                                         # Increment Successes
                                         successful_insert += 1
@@ -533,11 +702,9 @@ class histogram:
                                         #print("Failure",line)
 
                                 if(insert_status):
-                                        #try:
                                         value_counter = 0
                                         for values in [x.strip() for x in line.split(delimiter)]:
 
-                                                #print(str(value_counter),values,histogram_ans.keys())
 
                                                 try:
                                                         if(header.split(' ')[value_counter] in histogram_ans):
@@ -549,31 +716,9 @@ class histogram:
                                                                 histogram_ans[header.split(' ')[value_counter] + '_duplicate_counter'] = 0
                                                 except:
                                                         histogram_ans[header.split(' ')[value_counter]][values] = 1
-                                                        #print("Errored on:",values)
-                                                        #print("Keys:")
-                                                        #print(histogram_ans[header.split(' ')[value_counter]].keys())
-                                                        #failll = raw_input("")
+
 
                                                 value_counter += 1
-                                                
-                                                ###if(values in histogram_ans[value_counter]):
-                                                ###        #if(value_counter == 0):
-                                                ###        #        compatibility_print('Increment: ' + values + ' ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
-                                                ###        histogram_ans[value_counter][values] = histogram_ans[value_counter][values] + 1
-                                                ###        histogram_ans[value_counter + 1]['duplicate_count'] = histogram_ans[value_counter + 1]['duplicate_count'] + 1
-                                                ###
-                                                ###else:
-                                                ###        #if(value_counter == 0):
-                                                ###        #        compatibility_print('Initialize: ' + values)
-                                                ###        if(values not in histogram_ans[value_counter].keys()):
-                                                ###                histogram_ans[value_counter][values] = 1
-
-                                                #if(value_counter == 0):
-                                                #        compatibility_print('Duplicate Count ' + str(histogram_ans[value_counter - 1]['duplicate_count']))
-                                                ###value_counter += 2
-                                        #except:
-                                        #        #pass
-                                        #        print([x.strip() for x in line.split(delimiter)])
                                 
                 try:
                         temp = (float(successful_insert))/float(counter)*100
@@ -584,19 +729,20 @@ class histogram:
                 self.file_line_count[absolute_path_to_file] = counter
                 self.file_histogram[absolute_path_to_file] = histogram_ans
 
-                readfile.close()
-
         def read_all_files(self):
                 """
                 Reads in the data from all the files in the directory
                 """
+                
                 time_begin = datetime.datetime.now()
 		
                 for file_key in self.file_list.keys():
                         if(self.file_list[file_key].type == 'File' and self.file_list[file_key].delimiter == '{}'):
                                 self.read_parameter_file(self.file_list[file_key].directory + self.file_list[file_key].filename)
                                 
-                        elif(self.file_list[file_key].type == 'File'):
+                        elif(self.file_list[file_key].type == 'File'): #POI-DM
+                                #print("IN READ_ALL_FILES, HEADER = " + self.file_list[file_key].header)#DB-DM RL
+                                #print("IN READ ALL_FILES, DELIMITER = " + self.file_list[file_key].delimiter) #DB-DM RL
                                 self.read_file(self.file_list[file_key].directory + self.file_list[file_key].filename,self.file_list[file_key].delimiter,self.file_list[file_key].header)
 
                 time_end = datetime.datetime.now()
@@ -613,9 +759,6 @@ class histogram:
                 Last Update: 03/01/2017
                 By: LB023593
                 """
-
-                from os import getcwd
-                from collections import defaultdict
 
                 # Initialize variables
                 charset_locs = defaultdict(list)
@@ -684,17 +827,35 @@ class histogram:
                 except ZeroDivisionError:
                         temp = float(0)
 
-        def get_header_and_delimiter(self,absolute_path_to_file,delimiter=None):
+        def get_header_and_delimiter(self,absolute_path_to_file,delimiter=None): 
                 """
                 Recursive method if no delimiter is passed in.
                 """
 
+                #POI:EC-DM : Editing the delimiter
+                if self.customizations_initialized == True:
+                        if self.customizations[absolute_path_to_file].delimiter != False:
+                                delimiter = self.customizations[absolute_path_to_file].delimiter
+                
                 ###--># Make absolute_path_to_file an absolute path to the file if it's not ...
                 ###-->my_path, my_filename = self.convert_relative_path_to_absolute(absolute_path_to_file)
                 ###-->absolute_path_to_file = my_path + '' if my_filename == None else my_filename
 
+                dot_locs = list(find_all_return_generator(absolute_path_to_file,'.'))
+                if(len(dot_locs) > 0):
+                        file_extension = absolute_path_to_file[dot_locs[-1]+1:]
+                else:
+                        file_extension = ''
+
                 if(os.path.isdir(absolute_path_to_file)):
                         self.delimiter_header_attempts[absolute_path_to_file] = []
+
+                # Keep the program from crashing if an RPD is in the directory
+                elif(file_extension == 'rpd'):
+                        compatibility_print(absolute_path_to_file)
+                        compatibility_print('Is an RPD file and is not Human Readable')
+                        file_format = 'rpd'
+
                 elif(delimiter == None):
                         readfile = open(absolute_path_to_file,'r')
                         header = readfile.readline().strip()
@@ -760,7 +921,7 @@ class histogram:
 
                         if(file_format == 'parameter'):
                                 count_chars['{}'] = 1
-
+                        
                         # The below code could probably be in some kind of loop but hardcoding 2x to 5x seems decent enough for now
                         # Come back and check to see how many of the same character appear next to each other in a loop rather than hardcoded
 
@@ -801,9 +962,9 @@ class histogram:
 
                         # Recursively call this method
                         # Record each delimiter attempt and it's success ratio
-                        # The most successful delimiter will be used to read in the whole file
+                        # The most successful delimiter will be used to read in the whole file 
                         for test_delimiter in count_chars:
-                                self.get_header_and_delimiter(absolute_path_to_file,test_delimiter)
+                                self.get_header_and_delimiter(absolute_path_to_file,test_delimiter)#POI-DM
                                 
                 elif(delimiter == '{}'):
 
@@ -812,14 +973,42 @@ class histogram:
                         else:
                                 self.delimiter_header_attempts[absolute_path_to_file] = []
                                 self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_parameter_file(absolute_path_to_file))
-                else:
+                else:  #EC-DM : Editing the header
                         readfile = open(absolute_path_to_file,'r')
-                        header = readfile.readline()
+                        
+                        #Getting the first line of the file
+                        header_line = readfile.readline() #EC-DM
+
+                        header = ''
+                        unassigned_headers = ''
+                        #EC-DM: Adding unassigned header logic + determining other header properties
+                        if self.customizations_initialized == True:
+                                if self.customizations[absolute_path_to_file].headers != False:
+                                        header = self.customizations[absolute_path_to_file].headers
+                                        #print('***HEADER LENGTH: ' + str(len(list(header_line.split(delimiter)))))DB-DM RL
+                                        if ((self.customizations[absolute_path_to_file].delimiter != False)
+                                        and (len(list(header_line.split(delimiter))) != len(list(header.split(delimiter))))): #EC-DM
+                                                for message in self.error_codes[10]:
+                                                        print(message)
+                                elif self.customizations[absolute_path_to_file].headerless != False:
+                                        for count,column in enumerate(header_line.split(delimiter)):
+                                                unassigned_headers = unassigned_headers + 'unassigned_' + str(count)
+                                                if count != len(header_line.split(delimiter)) - 1:
+                                                        unassigned_headers = unassigned_headers + delimiter
+                                                #print("UNASSIGNED:" + unassigned_headers)#DB-DM
+                                        header = unassigned_headers
+                                        
+                                else:
+                                        header = header_line
+                        else:
+                                header = header_line
+                        
                         readfile.close()
                         del readfile
-
                         fixed_headers = ''
-                        temp_header = header.split(delimiter)
+                        
+                        temp_header = header.split(delimiter)        
+                        
                         counter = 0
                         for each_column in temp_header:
                                 if(each_column.isalpha()):
@@ -835,8 +1024,20 @@ class histogram:
                                                 if(invalid_char in each_column):
                                                         each_column = each_column.replace(invalid_char,'RENAMED_INVALID_CHAR_'+str(counter))
                                                         counter += 1
+
+                                        # Keep duplicate headers from being added
+                                        # Append _# if they are not unique
+
+                                        if((each_column == '') or (each_column == "") or (each_column == None)):
+                                                each_column = 'BAD_COLUMN_NAME'
                                         
-                                        fixed_headers += each_column + ' '
+                                        try_unique_header = each_column
+                                        unique_column_header_counter = 0
+                                        while(try_unique_header in fixed_headers):
+                                                unique_column_header_counter += 1
+                                                try_unique_header = each_column + '_' + str(unique_column_header_counter)
+                                        
+                                        fixed_headers += try_unique_header + ' '
                                 else:
                                         this_column = ''
                                         for each_char in each_column:
@@ -864,12 +1065,24 @@ class histogram:
                                                 # Make sure the beginning is a character and not a number or other character
                                                 while(len(this_column) > 0 and this_column[0].isalpha() == False):
                                                         this_column = this_column[1:]
-                                                        
-                                        fixed_headers += this_column + ' '
-                        fixed_headers = fixed_headers.strip()
 
+                                        if((this_column == '') or (this_column == "") or (this_column == None)):
+                                                this_column = 'BAD_COLUMN_NAME'
+
+                                        # Keep duplicate headers from being added
+                                        # Append _# if they are not unique
+                                        try_unique_header = this_column
+                                        unique_column_header_counter = 0
+                                        while(try_unique_header in fixed_headers):
+                                                unique_column_header_counter += 1
+                                                try_unique_header = this_column + '_' + str(unique_column_header_counter)
+                                        
+                                        fixed_headers += try_unique_header + ' '
+                        
+                        fixed_headers = fixed_headers.strip()
+                        #print('FIXED HEADERS: ' + fixed_headers) #DB-DM RL
                         if(absolute_path_to_file in self.delimiter_header_attempts):
-                                self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_file(absolute_path_to_file,fixed_headers,delimiter))
+                                self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_file(absolute_path_to_file,fixed_headers,delimiter))#POI-DM
                         else:
                                 self.delimiter_header_attempts[absolute_path_to_file] = []
                                 self.delimiter_header_attempts[absolute_path_to_file].append(self.attempt_to_read_file(absolute_path_to_file,fixed_headers,delimiter))
@@ -1008,8 +1221,11 @@ class histogram:
                                 compatibility_print(error_message)
 
                 return my_path, my_filename
-
+        
         def show_unique_columns(self):
+                """
+                Useful information for debugging
+                """
                 for file_key in self.file_list.keys():
                         found = False
                         unique_columns = []
@@ -1027,11 +1243,186 @@ class histogram:
                         else:        
                                 compatibility_print("Has no unique columns")
                         compatibility_print("")
+        
+        def get_data_types(self):
+                
+                type_unconvertable = type("")
+                type_empty = None
+                type_str = type("")
+                type_int = type(1)
+                type_float = type(0.1)
+                type_bool = type(True)
+                type_tuple = type((0,1,2))
+                type_datetime = type(datetime.datetime(1000,1,1))
+                type_date = type(datetime.date(1000,1,1))
+                type_time = type(datetime.time(10,10,10))
+                current_data_type = type_empty
+                
+                file_count = 0
+                row_count = 0
+                column_count = 0
+                column_types = []
+                column_datapoints = []
+                
+                dp_string_count = 0
+                dp_int_count = 0
+                dp_float_count = 0
+                dp_bool_count = 0
+                dp_tuple_count = 0
+                dp_datetime_count = 0
+                dp_date_count = 0
+                dp_time_count = 0
+                     
 
-        def show_file_summary(self):
+                files = sorted(list(self.file_data.keys()))
+                
+                for file_ in files:
+                        for column in self.file_data[files[file_count]][row_count]:
+                            for row in self.file_data[files[file_count]]:
+                                #print('Position: ' + str(row_count) + ' ' + str(column_count)) #DB-DM RL
+                                #print(self.file_data[files[file_count]][row_count][column_count])#DB-DM RL
+                                
+                                determined_datatype = determine_datatype(self.file_data[files[file_count]][row_count][column_count])
+                                
+                                #Determining overall datatype of each column
+                                if determined_datatype == type_str:#string
+                                    dp_string_count += 1
+                                    current_data_type = type_str
+                                elif determined_datatype == type_float: #float
+                                    dp_float_count += 1
+                                    if current_data_type == type_int or current_data_type == type_empty:
+                                        current_data_type = type_float
+                                    elif current_data_type == type_tuple or current_data_type == type_bool:
+                                        current_data_type = type_unconvertable
+                                    else:
+                                        pass
+                                elif determined_datatype == type_int: #int
+                                    dp_int_count += 1
+                                    if current_data_type == type_int or current_data_type == type_empty:
+                                        current_data_type = type_int
+                                    elif current_data_type == type_tuple or current_data_type == type_bool:
+                                        current_data_type = type_unconvertable
+                                    else:
+                                        pass
+                                elif determined_datatype == type_bool: #bool
+                                    dp_bool_count += 1
+                                    if current_data_type == type_bool or current_data_type == type_empty:
+                                        current_data_type = type_bool
+                                    else:
+                                        current_data_type = type_unconvertable
+                                elif determined_datatype == type_tuple: #tuple
+                                    dp_tuple_count += 1
+                                    if current_data_type == type_tuple or current_data_type == type_empty:
+                                        current_data_type = type_tuple
+                                    else:
+                                        current_data_type = type_unconvertable
+                                elif determined_datatype == type_datetime: #datetime
+                                    dp_datetime_count += 1
+                                    if current_data_type == type_datetime or current_data_type == type_empty or current_data_type == type_date or current_data_type == type_time:
+                                        current_data_type = type_datetime
+                                    else:
+                                        current_data_type = type_unconvertable
+                                elif determined_datatype == type_date: #date
+                                    dp_date_count += 1
+                                    if current_data_type == type_date or current_data_type == type_empty:
+                                        current_data_type = type_date
+                                    elif current_data_type == type_datetime or current_data_type == type_time:
+                                         current_data_type = type_datetime   
+                                    else:
+                                        current_data_type = type_unconvertable
+                                elif determined_datatype == type_time: #time
+                                    dp_time_count += 1
+                                    if current_data_type == type_time or current_data_type == type_empty:
+                                        current_data_type = type_time
+                                    elif current_data_type == type_datetime or current_data_type == type_date:
+                                        current_data_type = type_datetime
+
+                                row_count += 1
+                            
+                            cdp_nt = namedtuple('datapoints', 'strings integers floats booleans tuples datetimes dates times')
+                            column_datapoint_types = cdp_nt(dp_string_count, dp_int_count, dp_float_count, dp_bool_count, dp_tuple_count, dp_datetime_count,
+                                                dp_date_count, dp_time_count)
+                            
+                            column_datapoints.append(column_datapoint_types)
+                            
+                            dp_string_count = 0
+                            dp_int_count = 0
+                            dp_float_count = 0
+                            dp_bool_count = 0
+                            dp_tuple_count = 0
+                            dp_datetime_count = 0
+                            dp_date_count = 0
+                            dp_time_count = 0
+                            #reset_data_point_counters()
+                            
+                            column_types.append(current_data_type)
+                            
+                            column_count += 1
+                            row_count = 0
+                            current_data_type = type_empty #reset
+                            
+                        file_headers = self.file_list[sorted(list(self.file_list.keys()))[file_count]].header
+                        
+                        nt = namedtuple('datatypes',file_headers)
+                        datatypes = nt(*column_types)
+                        self.data_types[self.file_list[sorted(list(self.file_list.keys()))[file_count]]] = datatypes
+                        
+                        dp_nt = namedtuple('datapoints',file_headers)
+                        datapoints = dp_nt(*column_datapoints)
+                        self.data_points[self.file_list[sorted(list(self.file_list.keys()))[file_count]]] = datapoints
+                        
+                        #print("File #",file_count + 1)
+                        #print(self.data_types[sorted(list(self.data_types.keys()))[file_count]],"\n")
+
+                        file_count += 1
+                        column_types = []
+                        column_datapoints = []
+                        column_count = 0
+                        row_count = 0
+                        current_data_type = type_empty
+                        
+        def show_data_type_summary(self): #INOC-DM (doesn't work in case of a single file)
+          files = sorted(list(self.file_data.keys()))
+          column_count = 0
+          file_count = 0
+          print("Summary:")
+          
+          for file_count, file in enumerate(files):
+            print("\n\nFile#:", file_count+1)
+            for header_count, header in enumerate(self.file_list[sorted(list(self.file_list.keys()))[file_count]].header.split(' ')):
+              print(header,":",self.data_points[sorted(list(self.data_points.keys()))[file_count]][column_count], "\n")
+              column_count += 1
+            column_count = 0
+          
+          print("Summary completed")     
+                    
+        def show_file_summary(self): #POI-DM
+                """
+                Useful information for debugging
+                """
                 for file_key in self.file_list.keys():
+                        
                         compatibility_print('[' + ('-'*78) + ']')
                         compatibility_print(file_key)
+                        #EC-DM #CP
+                        count = 0
+                        #print('Delimiters:')#DB-DM
+                        for delimiter in self.delimiter_header_attempts[file_key]:
+                                compatibility_print(str(str("Delimiter ") + str(count + 1) + ": '" + str(delimiter.delimiter) + "' , with " + str(delimiter.success_percentage) + '%'))
+                                count += 1
+                                
+                        if self.customizations_initialized == True:
+                                if self.customizations[file_key].headers != False:
+                                        compatibility_print(str('Custom headers set: ' + str(self.customizations[file_key].headers)))
+                                if self.customizations[file_key].headerless != False:
+                                        compatibility_print(str('Original headers kept as data: ' + str(self.customizations[file_key].headerless)))
+                                if self.customizations[file_key].delimiter != False:
+                                        compatibility_print(str('Custom delimiter set: ' + str(self.customizations[file_key].delimiter)))
+                                if self.customizations[file_key].dedupe != False:
+                                        compatibility_print(str('Custom dedupe preference set: ' + str(self.customizations[file_key].dedupe)))
+                                if self.customizations[file_key].order != False:
+                                        compatibility_print(str('Custom order set: ' + str(self.customizations[file_key].order)))
+                        
                         compatibility_print("Lines Read In:" + " "*(23 - len(str(self.file_line_count[file_key]))) + str(self.file_line_count[file_key]))
                         compatibility_print("Success Percentage:" + " "*(20 - len(str(self.file_list[file_key].success_percentage))) + str(self.file_list[file_key].success_percentage) + '%')
                         if(self.file_list[file_key].delimiter == '{}'):
@@ -1056,7 +1447,6 @@ class histogram:
                                                             + " "*(15 - spacing_3) + str(float("{0:.2f}".format(column_unique_ratio))) + '%')
                         compatibility_print("")
 
-
         def help(self,which=None):
                 compatibility_print("\n[ Help Options for Histogram Class ]",'\n\n')
                 if(which == None):
@@ -1072,5 +1462,84 @@ class histogram:
                 elif(which == 'methods'):
                         compatibility_print(" [ Methods ]",'\n\n')
                         compatibility_print(".get_headers()\n\tAssigns Headers to .headers",'\n\n')
+                
+def send_message_to_Teams(messages={'title':"This is the Title",'text':'This is the message','section_1':'The first Section','section_2':'The second Section',
+                                    'team_webhook_url':'https://teams.microsoft.com/l/channel/19%3acfdd2cec22984439bb4b2f570cb43da0%40thread.skype/BI?groupId=f1cf3571-5517-4907-a0d0-e2db0869b138&tenantId=fbc493a8-0d24-4454-a815-f4ca58e8c09d',
+                                    'startGroup':True,'validate_before_sending':False}):
+        """
+        Code Was pulled from (not an official MSFT Git Repo):
+        https://github.com/rveachkc/pymsteams/
 
+        messages is a dictionary of values to be sent to MSFT Teams
+        
+        Examples:
+        
+                URL of the Webhook for the Team Channel
+                myTeamsMessage = pymsteams.connectorcard("<Microsoft Webhook URL>")
+
+                Add a Link
+                myTeamsMessage.addLinkButton("This is the button Text", "https://github.com/rveachkc/pymsteams/")
+
+                Use if you need to post the same message to multiple Channels
+                myTeamsMessage.newhookurl("<My New URL>")
+
+                Display the message locally for validation
+                myTeamsMessage.printme()
+
+                Send the message
+                myTeamsMessage.send()
+        
+        """
+
+        if('team_webhook_url' in messages.keys()):
+                myTeamsMessage = pymsteams.connectorcard(messages['team_webhook_url'])
+        else:
+                myTeamsMessage = pymsteams.connectorcard(messages['https://teams.microsoft.com/l/channel/19%3acfdd2cec22984439bb4b2f570cb43da0%40thread.skype/BI?groupId=f1cf3571-5517-4907-a0d0-e2db0869b138&tenantId=fbc493a8-0d24-4454-a815-f4ca58e8c09d'])
+        
+        if('text' in messages.keys()):
+                myTeamsMessage.text(messages['text'])
+        else:
+                myTeamsMessage.text('No message was given')
+
+        if('title' in messages.keys()):
+                myTeamsMessage.title(messages['title'])
+        else:
+                myTeamsMessage.title('No title was given')
+
+#        if('startGroup' in messages.keys()):
+#                myTeamsMessage.startGroup(messages['startGroup'])
+#        else:
+#                myTeamsMessage.startGroup(False)
+
+        sections_to_loop = []
+
+        # Python 3.x
+        if(sys.version.find('3.') == 0):
+                for my_key in list(messages.keys()):
+                        if(my_key.find('section_') == 0):
+                                sections_to_loop.append(my_key)
+                sections_to_loop = sorted(list(map(int,(str(sections_to_loop).replace('[','').replace(']','').replace('"','').replace(' ','').replace(',',' ').replace("'",'').replace('section_','').split(' ')))))
+        # Python 2.x
+        elif(sys.version.find('2.') == 0):
+                for my_key in list(messages.keys()):
+                        if(my_key.find('section_') == 0):
+                                sections_to_loop.append(my_key)
+                sections_to_loop = sorted(map(int,(str(sections_to_loop).replace('[','').replace(']','').replace('"','').replace(' ','').replace(',',' ').replace("'",'').replace('section_','').split(' '))))
+
+        for section in sections_to_loop:
+                next_section = pymsteams.cardsection()
+                next_section.text(messages['section_'+str(section)])
+                myTeamsMessage.addSection(next_section)
+                del next_section
+
+        if('validate_before_sending' in messages.keys()):
+                if(messages['validate_before_sending']):
+                        myTeamsMessage.printme()
+                        ans = input("Send the above message? (y/n): ")
+                        if(ans == 'y'):
+                                myTeamsMessage.send()
+        else:
+                myTeamsMessage.send()
+
+        
         
